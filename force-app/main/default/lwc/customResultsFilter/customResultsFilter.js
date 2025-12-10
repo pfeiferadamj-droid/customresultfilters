@@ -8,23 +8,85 @@ import getFilterData from '@salesforce/apex/CustomFilterController.getFilterData
  */
 export default class CustomResultsFilter extends LightningElement {
     @api recordId;
+    @api categoryOverride;
 
     // Current category resolved from URL
     currentCategory;
+    categoryId;
 
     // Filter data from Apex
     filterData;
     error;
     isLoading = true;
 
+    // Category slug to display name mapping
+    categoryMapping = {
+        'quick-turn': 'Quick Turn',
+        'my-products': 'My Products'
+    };
+
     // Wire to get current page reference (URL parameters)
     @wire(CurrentPageReference)
     getPageReference(pageRef) {
         if (pageRef) {
-            // Extract category from URL parameter
-            this.currentCategory = pageRef.state?.category || pageRef.attributes?.category;
+            // Check if category is manually overridden
+            if (this.categoryOverride) {
+                this.currentCategory = this.categoryOverride;
+            } else {
+                // Try multiple methods to extract category
+                this.extractCategoryFromPageRef(pageRef);
+            }
             this.loadFilterData();
         }
+    }
+
+    /**
+     * Extract category from page reference
+     * Supports both query parameters and path-based URLs
+     */
+    extractCategoryFromPageRef(pageRef) {
+        // Method 1: Check query parameters (legacy support)
+        if (pageRef.state?.category) {
+            this.currentCategory = pageRef.state.category;
+            return;
+        }
+
+        // Method 2: Parse URL path for Experience Cloud sites
+        // URL format: /category/quick-turn/0ZGbb000000F5llGAC
+        if (pageRef.attributes?.name || pageRef.type) {
+            const url = window.location.href;
+            const categoryMatch = url.match(/\/category\/([^\/]+)(?:\/([a-zA-Z0-9]{15,18}))?/);
+
+            if (categoryMatch) {
+                const categorySlug = categoryMatch[1]; // e.g., "quick-turn"
+                this.categoryId = categoryMatch[2]; // e.g., "0ZGbb000000F5llGAC"
+
+                // Map slug to display name
+                this.currentCategory = this.categoryMapping[categorySlug] || this.formatCategoryName(categorySlug);
+                return;
+            }
+        }
+
+        // Method 3: Check for recordId in URL (direct category record page)
+        if (pageRef.attributes?.recordId) {
+            this.categoryId = pageRef.attributes.recordId;
+        }
+
+        // Method 4: Try to get from state attributes
+        if (pageRef.attributes?.category) {
+            this.currentCategory = pageRef.attributes.category;
+        }
+    }
+
+    /**
+     * Format category slug to display name
+     * Converts "quick-turn" to "Quick Turn"
+     */
+    formatCategoryName(slug) {
+        return slug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     /**

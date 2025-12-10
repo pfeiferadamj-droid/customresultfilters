@@ -13,5 +13,8 @@
         <targetConfig targets="lightning__RecordPage">
             <property name="recordId" type="String" label="Record Id" />
         </targetConfig>
+        <targetConfig targets="lightningCommunity__Page,lightningCommunity__Default">
+            <property name="categoryOverride" type="String" label="Category Override" description="Manually specify the category name (e.g., 'Quick Turn', 'My Products'). Leave blank to auto-detect from URL." />
+        </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

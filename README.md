@@ -115,7 +115,29 @@ String query = 'SELECT Id, End_User__c, End_User__r.Name FROM Product2 WHERE ';
 
 ### URL Parameters
 
-The component expects a category parameter in the URL:
+The component supports multiple URL formats to detect the category:
+
+#### Experience Cloud Sites (Path-based URLs)
+The component automatically detects categories from Experience Cloud URLs:
+
+**Quick Turn Category:**
+```
+https://yoursite.force.com/shop/category/quick-turn/0ZGbb000000F5llGAC
+```
+
+**My Products Category:**
+```
+https://yoursite.force.com/shop/category/my-products/0ZGbb000000F5llGAC
+```
+
+The component uses the following mapping for URL slugs:
+- `quick-turn` → "Quick Turn"
+- `my-products` → "My Products"
+
+For other slugs, the component automatically formats them (e.g., `custom-category` → "Custom Category").
+
+#### Standard Salesforce Pages (Query Parameters)
+For standard Salesforce pages, use query parameters:
 
 **Quick Turn Category:**
 ```
@@ -126,6 +148,9 @@ The component expects a category parameter in the URL:
 ```
 /lightning/r/Product2/list?category=My%20Products
 ```
+
+#### Manual Override
+You can also manually specify the category in the Lightning App Builder by setting the **Category Override** property. This is useful if the URL doesn't contain category information or you want to force a specific category.
 
 ### Handling Filter Events
 
