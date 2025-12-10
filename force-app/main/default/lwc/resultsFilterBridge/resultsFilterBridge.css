@@ -1,0 +1,4 @@
+/* Bridge component has no visible UI */
+:host {
+    display: none;
+}
