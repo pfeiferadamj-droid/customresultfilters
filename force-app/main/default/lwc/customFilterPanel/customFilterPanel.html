@@ -1,0 +1,56 @@
+<template>
+    <div class="custom-filter-panel">
+        <!-- Filter Header -->
+        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+            <div class="slds-col">
+                <h2 class="slds-text-heading_small">{filtersHeader}</h2>
+            </div>
+            <div class="slds-col_bump-left">
+                <lightning-button
+                    variant="base"
+                    label={clearAllLabel}
+                    onclick={handleClearAll}
+                    class="clear-all-button">
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- End User Scope Toggle (My Products only) -->
+        <template if:true={isMyProducts}>
+            <div class="slds-m-bottom_medium">
+                <lightning-input
+                    type="checkbox"
+                    label="Show all account end users"
+                    checked={showAllAccountEndUsers}
+                    onchange={handleEndUserScopeToggle}>
+                </lightning-input>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                    Toggle to view end users for all products in your account
+                </p>
+            </div>
+        </template>
+
+        <!-- Filters List -->
+        <template if:true={hasFilters}>
+            <div class="filters-container">
+                <template for:each={normalizedFilters} for:item="filter">
+                    <div key={filter.id} class="slds-m-bottom_medium">
+                        <c-custom-filter-facet
+                            filter-data={filter}
+                            onfiltertoggle={handleFilterToggle}>
+                        </c-custom-filter-facet>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- No Filters Message -->
+        <template if:false={hasFilters}>
+            <div class="slds-text-align_center slds-m-vertical_medium">
+                <p class="slds-text-body_small slds-text-color_weak">
+                    No filters available for this category
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

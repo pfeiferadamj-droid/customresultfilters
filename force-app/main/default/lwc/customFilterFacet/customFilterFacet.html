@@ -1,0 +1,64 @@
+<template>
+    <div class="custom-filter-facet">
+        <!-- Facet Header -->
+        <div class="slds-grid slds-grid_vertical-align-center facet-header" onclick={handleHeaderToggle}>
+            <lightning-icon
+                icon-name={iconName}
+                size="x-small"
+                class="slds-m-right_x-small">
+            </lightning-icon>
+            <h3 class="slds-text-heading_small slds-grow">{filterLabel}</h3>
+        </div>
+
+        <!-- Facet Content -->
+        <div class={facetContentClasses}>
+            <!-- Checkbox/Picklist Type -->
+            <template if:true={isCheckbox}>
+                <template if:true={hasValues}>
+                    <lightning-checkbox-group
+                        name={normalizedFilterData.id}
+                        options={filterValues}
+                        value={normalizedFilterData.selectedValues}
+                        onchange={handleCheckboxChange}>
+                    </lightning-checkbox-group>
+                </template>
+            </template>
+
+            <!-- Lookup Type (for End Users, etc.) -->
+            <template if:true={isLookup}>
+                <template if:true={hasValues}>
+                    <div class="lookup-values">
+                        <template for:each={filterValues} for:item="filterValue">
+                            <div key={filterValue.value} class="slds-m-bottom_x-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={filterValue.label}
+                                    value={filterValue.value}
+                                    checked={filterValue.checked}
+                                    onchange={handleCheckboxChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Text Input Type -->
+            <template if:true={isText}>
+                <lightning-input
+                    type="text"
+                    label={filterLabel}
+                    placeholder="Enter search text..."
+                    onchange={handleCheckboxChange}>
+                </lightning-input>
+            </template>
+
+            <!-- No Values Message -->
+            <template if:false={hasValues}>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                    No options available
+                </p>
+            </template>
+        </div>
+    </div>
+</template>

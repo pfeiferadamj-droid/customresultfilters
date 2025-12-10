@@ -1,0 +1,12 @@
+.custom-filter-panel {
+    padding: 0;
+}
+
+.filters-container {
+    border-top: 1px solid #dddbda;
+    padding-top: 0.5rem;
+}
+
+.clear-all-button {
+    font-size: 0.875rem;
+}
