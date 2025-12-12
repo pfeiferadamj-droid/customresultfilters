@@ -10,6 +10,9 @@ export default class CustomFilterFacet extends LightningElement {
     // Track expanded/collapsed state
     _expanded = true;
 
+    // Debounce timer for text input
+    _textInputDebounceTimer;
+
     /**
      * Get normalized filter data
      */
@@ -89,20 +92,94 @@ export default class CustomFilterFacet extends LightningElement {
 
     /**
      * Handle checkbox value change
+     * Handles different event types from lightning-checkbox-group vs lightning-input
      */
     handleCheckboxChange(event) {
-        const value = event.target.value;
-        const checked = event.target.checked;
+        event.stopPropagation();
 
-        this.dispatchEvent(new CustomEvent('filtertoggle', {
-            bubbles: true,
-            composed: true,
-            detail: {
-                filterId: this.normalizedFilterData.id,
-                value: value,
-                checked: checked
+        const filterId = this.normalizedFilterData.id;
+
+        // Check if this is from lightning-checkbox-group (picklist/multi-select)
+        if (event.detail && event.detail.value && Array.isArray(event.detail.value)) {
+            // lightning-checkbox-group returns array of selected values
+            const newValues = event.detail.value;
+            const oldValues = this.normalizedFilterData.selectedValues || [];
+
+            // Determine which value was added or removed
+            const addedValues = newValues.filter(v => !oldValues.includes(v));
+            const removedValues = oldValues.filter(v => !newValues.includes(v));
+
+            // Dispatch event for each changed value
+            if (addedValues.length > 0) {
+                addedValues.forEach(value => {
+                    this.dispatchEvent(new CustomEvent('filtertoggle', {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            filterId: filterId,
+                            value: value,
+                            checked: true
+                        }
+                    }));
+                });
             }
-        }));
+
+            if (removedValues.length > 0) {
+                removedValues.forEach(value => {
+                    this.dispatchEvent(new CustomEvent('filtertoggle', {
+                        bubbles: true,
+                        composed: true,
+                        detail: {
+                            filterId: filterId,
+                            value: value,
+                            checked: false
+                        }
+                    }));
+                });
+            }
+        } else {
+            // lightning-input checkbox or text input
+            const value = event.target.value;
+            const checked = event.target.checked !== undefined ? event.target.checked : true;
+
+            this.dispatchEvent(new CustomEvent('filtertoggle', {
+                bubbles: true,
+                composed: true,
+                detail: {
+                    filterId: filterId,
+                    value: value,
+                    checked: checked
+                }
+            }));
+        }
+    }
+
+    /**
+     * Handle text input change with debouncing
+     */
+    handleTextInput(event) {
+        event.stopPropagation();
+
+        const value = event.target.value;
+        const filterId = this.normalizedFilterData.id;
+
+        // Clear existing timer
+        if (this._textInputDebounceTimer) {
+            clearTimeout(this._textInputDebounceTimer);
+        }
+
+        // Set new timer to debounce input
+        this._textInputDebounceTimer = setTimeout(() => {
+            this.dispatchEvent(new CustomEvent('filtertoggle', {
+                bubbles: true,
+                composed: true,
+                detail: {
+                    filterId: filterId,
+                    value: value,
+                    checked: value !== '' // Only apply if value is not empty
+                }
+            }));
+        }, 500); // Wait 500ms after user stops typing
     }
 
     /**
