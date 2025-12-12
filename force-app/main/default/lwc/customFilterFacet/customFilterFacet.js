@@ -19,32 +19,67 @@ export default class CustomFilterFacet extends LightningElement {
     }
 
     /**
-     * Get normalized filter data
+     * Get filter ID
      */
-    get normalizedFilterData() {
-        const normalized = {
-            id: this.filterData?.id || '',
-            label: this.filterData?.label || '',
-            fieldType: this.filterData?.fieldType || 'text',
-            values: this.filterData?.values || [],
-            selectedValues: this.filterData?.selectedValues || []
-        };
-        console.log('Normalized filter data:', JSON.stringify(normalized));
-        return normalized;
+    get filterId() {
+        return this.filterData?.id || '';
     }
 
     /**
      * Get filter label
      */
     get filterLabel() {
-        return this.normalizedFilterData.label;
+        return this.filterData?.label || '';
+    }
+
+    /**
+     * Get field type
+     */
+    get fieldType() {
+        return this.filterData?.fieldType || 'text';
     }
 
     /**
      * Get filter values
      */
     get filterValues() {
-        return this.normalizedFilterData.values;
+        return this.filterData?.values || [];
+    }
+
+    /**
+     * Get selected values
+     */
+    get selectedValues() {
+        return this.filterData?.selectedValues || [];
+    }
+
+    /**
+     * Check if filter has values
+     */
+    get hasValues() {
+        return this.filterValues && this.filterValues.length > 0;
+    }
+
+    /**
+     * Check if filter is checkbox type
+     */
+    get isCheckbox() {
+        return this.fieldType === 'checkbox' || this.fieldType === 'boolean' ||
+               this.fieldType === 'picklist' || this.fieldType === 'multipicklist';
+    }
+
+    /**
+     * Check if filter is lookup type
+     */
+    get isLookup() {
+        return this.fieldType === 'lookup' || this.fieldType === 'reference';
+    }
+
+    /**
+     * Check if filter is text type
+     */
+    get isText() {
+        return this.fieldType === 'text' || this.fieldType === 'string';
     }
 
     /**
@@ -71,35 +106,6 @@ export default class CustomFilterFacet extends LightningElement {
                 value: item
             };
         });
-    }
-
-    /**
-     * Check if filter has values
-     */
-    get hasValues() {
-        return this.filterValues && this.filterValues.length > 0;
-    }
-
-    /**
-     * Check if filter is checkbox type
-     */
-    get isCheckbox() {
-        const fieldType = this.normalizedFilterData.fieldType;
-        return fieldType === 'checkbox' || fieldType === 'boolean' || fieldType === 'picklist' || fieldType === 'multipicklist';
-    }
-
-    /**
-     * Check if filter is lookup type
-     */
-    get isLookup() {
-        return this.normalizedFilterData.fieldType === 'lookup' || this.normalizedFilterData.fieldType === 'reference';
-    }
-
-    /**
-     * Check if filter is text type
-     */
-    get isText() {
-        return this.normalizedFilterData.fieldType === 'text' || this.normalizedFilterData.fieldType === 'string';
     }
 
     /**
@@ -134,14 +140,14 @@ export default class CustomFilterFacet extends LightningElement {
 
         event.stopPropagation();
 
-        const filterId = this.normalizedFilterData.id;
+        const filterId = this.filterId;
 
         // Check if this is from lightning-checkbox-group (picklist/multi-select)
         if (event.detail && event.detail.value && Array.isArray(event.detail.value)) {
             console.log('Checkbox group event detected');
             // lightning-checkbox-group returns array of selected values
             const newValues = event.detail.value;
-            const oldValues = this.normalizedFilterData.selectedValues || [];
+            const oldValues = this.selectedValues || [];
 
             // Determine which value was added or removed
             const addedValues = newValues.filter(v => !oldValues.includes(v));
@@ -208,7 +214,7 @@ export default class CustomFilterFacet extends LightningElement {
         event.stopPropagation();
 
         const value = event.target.value;
-        const filterId = this.normalizedFilterData.id;
+        const filterId = this.filterId;
 
         // Clear existing timer
         if (this._textInputDebounceTimer) {
@@ -233,6 +239,6 @@ export default class CustomFilterFacet extends LightningElement {
      * Check if a value is selected
      */
     isValueSelected(value) {
-        return this.normalizedFilterData.selectedValues.includes(value);
+        return this.selectedValues.includes(value);
     }
 }
