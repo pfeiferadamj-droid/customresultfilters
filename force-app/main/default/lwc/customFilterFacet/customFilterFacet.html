@@ -17,7 +17,7 @@
                 <template if:true={hasValues}>
                     <lightning-checkbox-group
                         name={normalizedFilterData.id}
-                        options={filterValues}
+                        options={checkboxOptions}
                         value={normalizedFilterData.selectedValues}
                         onchange={handleCheckboxChange}>
                     </lightning-checkbox-group>

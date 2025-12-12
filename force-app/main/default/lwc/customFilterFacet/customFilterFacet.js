@@ -13,17 +13,24 @@ export default class CustomFilterFacet extends LightningElement {
     // Debounce timer for text input
     _textInputDebounceTimer;
 
+    connectedCallback() {
+        // Debug logging
+        console.log('CustomFilterFacet connected with data:', JSON.stringify(this.filterData));
+    }
+
     /**
      * Get normalized filter data
      */
     get normalizedFilterData() {
-        return {
+        const normalized = {
             id: this.filterData?.id || '',
             label: this.filterData?.label || '',
             fieldType: this.filterData?.fieldType || 'text',
             values: this.filterData?.values || [],
             selectedValues: this.filterData?.selectedValues || []
         };
+        console.log('Normalized filter data:', JSON.stringify(normalized));
+        return normalized;
     }
 
     /**
@@ -41,10 +48,36 @@ export default class CustomFilterFacet extends LightningElement {
     }
 
     /**
+     * Get checkbox options formatted for lightning-checkbox-group
+     * lightning-checkbox-group expects: [{ label: 'Label', value: 'value' }]
+     */
+    get checkboxOptions() {
+        const values = this.filterValues;
+        if (!values || values.length === 0) {
+            return [];
+        }
+
+        // Transform to lightning-checkbox-group format
+        return values.map(item => {
+            // Handle both object format and simple string format
+            if (typeof item === 'object') {
+                return {
+                    label: item.label || item.value,
+                    value: item.value || item.label
+                };
+            }
+            return {
+                label: item,
+                value: item
+            };
+        });
+    }
+
+    /**
      * Check if filter has values
      */
     get hasValues() {
-        return this.filterValues.length > 0;
+        return this.filterValues && this.filterValues.length > 0;
     }
 
     /**
@@ -95,12 +128,17 @@ export default class CustomFilterFacet extends LightningElement {
      * Handles different event types from lightning-checkbox-group vs lightning-input
      */
     handleCheckboxChange(event) {
+        console.log('handleCheckboxChange called', event);
+        console.log('event.detail:', JSON.stringify(event.detail));
+        console.log('event.target:', event.target);
+
         event.stopPropagation();
 
         const filterId = this.normalizedFilterData.id;
 
         // Check if this is from lightning-checkbox-group (picklist/multi-select)
         if (event.detail && event.detail.value && Array.isArray(event.detail.value)) {
+            console.log('Checkbox group event detected');
             // lightning-checkbox-group returns array of selected values
             const newValues = event.detail.value;
             const oldValues = this.normalizedFilterData.selectedValues || [];
@@ -111,45 +149,54 @@ export default class CustomFilterFacet extends LightningElement {
 
             // Dispatch event for each changed value
             if (addedValues.length > 0) {
+                console.log('Dispatching events for added values:', addedValues);
                 addedValues.forEach(value => {
+                    const eventDetail = {
+                        filterId: filterId,
+                        value: value,
+                        checked: true
+                    };
+                    console.log('Dispatching filtertoggle event:', eventDetail);
                     this.dispatchEvent(new CustomEvent('filtertoggle', {
                         bubbles: true,
                         composed: true,
-                        detail: {
-                            filterId: filterId,
-                            value: value,
-                            checked: true
-                        }
+                        detail: eventDetail
                     }));
                 });
             }
 
             if (removedValues.length > 0) {
+                console.log('Dispatching events for removed values:', removedValues);
                 removedValues.forEach(value => {
+                    const eventDetail = {
+                        filterId: filterId,
+                        value: value,
+                        checked: false
+                    };
+                    console.log('Dispatching filtertoggle event:', eventDetail);
                     this.dispatchEvent(new CustomEvent('filtertoggle', {
                         bubbles: true,
                         composed: true,
-                        detail: {
-                            filterId: filterId,
-                            value: value,
-                            checked: false
-                        }
+                        detail: eventDetail
                     }));
                 });
             }
         } else {
+            console.log('Individual checkbox/input event detected');
             // lightning-input checkbox or text input
             const value = event.target.value;
             const checked = event.target.checked !== undefined ? event.target.checked : true;
 
+            const eventDetail = {
+                filterId: filterId,
+                value: value,
+                checked: checked
+            };
+            console.log('Dispatching filtertoggle event:', eventDetail);
             this.dispatchEvent(new CustomEvent('filtertoggle', {
                 bubbles: true,
                 composed: true,
-                detail: {
-                    filterId: filterId,
-                    value: value,
-                    checked: checked
-                }
+                detail: eventDetail
             }));
         }
     }
