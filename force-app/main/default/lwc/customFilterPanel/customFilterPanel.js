@@ -80,14 +80,15 @@ export default class CustomFilterPanel extends LightningElement {
         console.log('customFilterPanel: handleFilterToggle', {filterId, value, checked});
 
         // Update the filter's selected values
-        this._filters = this._filters.map(filter => {
+        const updatedFilters = this._filters.map(filter => {
+            // Always create new object to ensure LWC detects change
             if (filter.id === filterId) {
-                let selectedValues = filter.selectedValues || [];
+                let selectedValues = [...(filter.selectedValues || [])];
 
                 if (checked) {
                     // Add value if not already selected
                     if (!selectedValues.includes(value)) {
-                        selectedValues = [...selectedValues, value];
+                        selectedValues.push(value);
                     }
                 } else {
                     // Remove value
@@ -101,11 +102,14 @@ export default class CustomFilterPanel extends LightningElement {
                     selectedValues: selectedValues
                 };
             }
-            return filter;
+            // Return new object for unchanged filters too
+            return { ...filter };
         });
 
-        // Force re-render
-        this._filters = [...this._filters];
+        // Set the new array to trigger reactivity
+        this._filters = updatedFilters;
+
+        console.log('All filters after update:', JSON.stringify(this._filters.map(f => ({id: f.id, selectedValues: f.selectedValues}))));
 
         // Dispatch to parent
         this.dispatchEvent(new CustomEvent('filterchange', {
@@ -127,14 +131,16 @@ export default class CustomFilterPanel extends LightningElement {
 
         console.log('customFilterPanel: clearAll clicked');
 
-        // Clear all selected values
-        this._filters = this._filters.map(filter => ({
+        // Clear all selected values - create new objects for all filters
+        const clearedFilters = this._filters.map(filter => ({
             ...filter,
             selectedValues: []
         }));
 
-        // Force re-render
-        this._filters = [...this._filters];
+        // Set the new array
+        this._filters = clearedFilters;
+
+        console.log('All filters cleared');
 
         // Dispatch to parent
         this.dispatchEvent(new CustomEvent('clearall', {
