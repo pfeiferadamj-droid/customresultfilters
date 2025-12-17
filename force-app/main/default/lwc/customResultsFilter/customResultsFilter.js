@@ -107,13 +107,16 @@ export default class CustomResultsFilter extends LightningElement {
      */
     loadFilterData() {
         if (!this.currentCategory) {
+            console.warn('customResultsFilter: No current category, skipping filter load');
             this.isLoading = false;
             return;
         }
 
+        console.log('customResultsFilter: Loading filter data for category:', this.currentCategory);
         this.isLoading = true;
         getFilterData({ category: this.currentCategory })
             .then(result => {
+                console.log('customResultsFilter: Received filter data:', result);
                 this.filterData = result;
                 this.error = undefined;
                 this.isLoading = false;
@@ -122,7 +125,7 @@ export default class CustomResultsFilter extends LightningElement {
                 this.error = error;
                 this.filterData = undefined;
                 this.isLoading = false;
-                console.error('Error loading filter data:', error);
+                console.error('customResultsFilter: Error loading filter data:', error);
             });
     }
 
