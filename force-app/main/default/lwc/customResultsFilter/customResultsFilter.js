@@ -13,6 +13,7 @@ export default class CustomResultsFilter extends LightningElement {
     // Current category resolved from URL
     currentCategory;
     categoryId;
+    previousCategory;  // Track previous category to detect changes
 
     // Filter data from Apex
     filterData;
@@ -36,7 +37,13 @@ export default class CustomResultsFilter extends LightningElement {
                 // Try multiple methods to extract category
                 this.extractCategoryFromPageRef(pageRef);
             }
-            this.loadFilterData();
+
+            // Only reload filter data if category actually changed
+            if (this.currentCategory && this.currentCategory !== this.previousCategory) {
+                console.log('Category changed from', this.previousCategory, 'to', this.currentCategory);
+                this.previousCategory = this.currentCategory;
+                this.loadFilterData();
+            }
         }
     }
 
