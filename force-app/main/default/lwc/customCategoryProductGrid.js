@@ -82,6 +82,13 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     @api webstoreId;
 
     /**
+     * The category name for this grid (e.g., "Quick Turn", "My Products")
+     * Used to filter which filter events this component should respond to
+     * @type {string}
+     */
+    @api categoryName;
+
+    /**
      * The category ID to display products from
      * If not provided, will attempt to resolve from URL or page context
      * @type {string}
@@ -356,6 +363,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             categoryId: this.categoryId,
             resolvedCategoryId: this.resolvedCategoryId,
             webstoreId: this.webstoreId,
+            categoryName: this.categoryName,
             url: window.location.href
         });
 
@@ -366,6 +374,9 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             console.warn('Category ID not found in URL or navigation context.');
             this.error = 'Category ID not found';
         } else {
+            // Load saved filters from sessionStorage before fetching
+            this.loadFiltersFromSession();
+
             // Fetch products
             await this.fetchProducts();
         }
@@ -1085,7 +1096,15 @@ handleShowProduct(event) {
     handleCustomFilterChange(event) {
         console.log('customCategoryProductGrid: Received filterchange event', event.detail);
 
-        const { filterId, value, checked } = event.detail;
+        const { category, filterId, value, checked } = event.detail;
+
+        // Only process events for this component's category
+        if (this.categoryName && category && category !== this.categoryName) {
+            console.log(`customCategoryProductGrid: Ignoring filter event for category "${category}" (this component is for "${this.categoryName}")`);
+            return;
+        }
+
+        console.log('customCategoryProductGrid: Processing filter change for matching category');
 
         // Initialize filter array if needed
         if (!this.currentFilters[filterId]) {
@@ -1110,6 +1129,9 @@ handleShowProduct(event) {
 
         console.log('customCategoryProductGrid: Current filters:', this.currentFilters);
 
+        // Save filters to sessionStorage to persist across re-initializations
+        this.saveFiltersToSession();
+
         // Reset to page 1 when filters change
         this.currentPage = 1;
 
@@ -1123,8 +1145,17 @@ handleShowProduct(event) {
     handleClearAllFilters(event) {
         console.log('customCategoryProductGrid: Clearing all custom filters');
 
+        const category = event?.detail?.category;
+
+        // Only process events for this component's category
+        if (this.categoryName && category && category !== this.categoryName) {
+            console.log(`customCategoryProductGrid: Ignoring clear filters event for category "${category}" (this component is for "${this.categoryName}")`);
+            return;
+        }
+
         // Clear all custom filters
         this.currentFilters = {};
+        this.clearFiltersFromSession();
         this.currentPage = 1;
         this.fetchProducts();
     }
@@ -1179,6 +1210,55 @@ handleShowProduct(event) {
         };
 
         return typeMapping[filterId] || 'Custom';
+    }
+
+    /**
+     * Save current filters to sessionStorage to persist across component re-initializations
+     */
+    saveFiltersToSession() {
+        if (!this.resolvedCategoryId) return;
+
+        const storageKey = `customFilters_${this.resolvedCategoryId}`;
+        try {
+            sessionStorage.setItem(storageKey, JSON.stringify(this.currentFilters));
+            console.log('customCategoryProductGrid: Saved filters to session:', storageKey, this.currentFilters);
+        } catch (e) {
+            console.error('customCategoryProductGrid: Error saving filters to session:', e);
+        }
+    }
+
+    /**
+     * Load filters from sessionStorage
+     */
+    loadFiltersFromSession() {
+        if (!this.resolvedCategoryId) return;
+
+        const storageKey = `customFilters_${this.resolvedCategoryId}`;
+        try {
+            const savedFilters = sessionStorage.getItem(storageKey);
+            if (savedFilters) {
+                this.currentFilters = JSON.parse(savedFilters);
+                console.log('customCategoryProductGrid: Loaded filters from session:', storageKey, this.currentFilters);
+            }
+        } catch (e) {
+            console.error('customCategoryProductGrid: Error loading filters from session:', e);
+            this.currentFilters = {};
+        }
+    }
+
+    /**
+     * Clear filters from sessionStorage
+     */
+    clearFiltersFromSession() {
+        if (!this.resolvedCategoryId) return;
+
+        const storageKey = `customFilters_${this.resolvedCategoryId}`;
+        try {
+            sessionStorage.removeItem(storageKey);
+            console.log('customCategoryProductGrid: Cleared filters from session:', storageKey);
+        } catch (e) {
+            console.error('customCategoryProductGrid: Error clearing filters from session:', e);
+        }
     }
 
     /**
