@@ -1,9 +1,11 @@
 import { LightningElement, api, wire } from 'lwc';
 import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
+import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
+import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 
 /**
  * Bridge component to connect customResultsFilter events with native Salesforce results components
- * This component listens for filter events and updates the URL with filter parameters
+ * This component listens for filter events via LMS and updates the URL with filter parameters
  * that native search/results components can consume
  */
 export default class ResultsFilterBridge extends NavigationMixin(LightningElement) {
@@ -11,19 +13,83 @@ export default class ResultsFilterBridge extends NavigationMixin(LightningElemen
 
     currentFilters = {};
 
+    // Lightning Message Service
+    @wire(MessageContext)
+    messageContext;
+
+    subscription = null;
+
     // Wire to current page reference
     @wire(CurrentPageReference)
     pageRef;
 
     connectedCallback() {
-        // Listen for filter events from customResultsFilter
-        window.addEventListener('filterchange', this.handleFilterChange.bind(this));
-        window.addEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
+        // Subscribe to Lightning Message Service for filter events
+        this.subscribeToFilterMessages();
+
+        // Also listen for DOM events (for backward compatibility)
+        this.addEventListener('filterchange', this.handleFilterChange.bind(this));
+        this.addEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
     }
 
     disconnectedCallback() {
-        window.removeEventListener('filterchange', this.handleFilterChange.bind(this));
-        window.removeEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
+        // Unsubscribe from LMS
+        this.unsubscribeFromFilterMessages();
+
+        // Remove DOM event listeners
+        this.removeEventListener('filterchange', this.handleFilterChange.bind(this));
+        this.removeEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
+    }
+
+    /**
+     * Subscribe to Lightning Message Service for filter events
+     */
+    subscribeToFilterMessages() {
+        if (!this.subscription) {
+            this.subscription = subscribe(
+                this.messageContext,
+                FILTER_CHANGE_CHANNEL,
+                (message) => this.handleLMSMessage(message)
+            );
+            console.log('resultsFilterBridge: Subscribed to LMS filter messages');
+        }
+    }
+
+    /**
+     * Unsubscribe from Lightning Message Service
+     */
+    unsubscribeFromFilterMessages() {
+        if (this.subscription) {
+            unsubscribe(this.subscription);
+            this.subscription = null;
+            console.log('resultsFilterBridge: Unsubscribed from LMS filter messages');
+        }
+    }
+
+    /**
+     * Handle Lightning Message Service messages
+     */
+    handleLMSMessage(message) {
+        console.log('resultsFilterBridge: Received LMS message:', message);
+
+        if (message.action === 'filterchange') {
+            // Process filter change from LMS
+            this.handleFilterChange({
+                detail: {
+                    category: message.category,
+                    filterId: message.filterId,
+                    value: message.value,
+                    checked: message.checked
+                }
+            });
+        } else if (message.action === 'clearall') {
+            // Process clear all from LMS
+            this.handleClearAllFilters({
+                detail: {
+                    category: message.category
+                }
+            });
+        }
     }
 
     handleFilterChange(event) {
@@ -75,45 +141,71 @@ export default class ResultsFilterBridge extends NavigationMixin(LightningElemen
 
     /**
      * Update URL parameters with current filters
-     * Native Salesforce search components often read refinements from URL
+     * Native Salesforce search components read refinements from URL
      */
     updateUrlParameters() {
-        if (!this.pageRef) return;
+        console.log('resultsFilterBridge: Updating URL parameters');
 
-        // Build refinement string for Salesforce search
-        // Format: refinement=fieldName:value1,value2|anotherField:value3
-        const refinements = this.buildRefinementString();
+        // Build refinement JSON for Salesforce Commerce search
+        const refinementsJSON = this.buildRefinementsJSON();
 
-        // Navigate to update URL params
-        this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: {
-                url: window.location.pathname
-            },
-            state: {
-                ...this.pageRef.state,
-                refinement: refinements || undefined
-            }
-        }, true); // Replace history state
+        console.log('resultsFilterBridge: Built refinements JSON:', refinementsJSON);
+
+        // Update URL with refinements parameter
+        const url = new URL(window.location.href);
+
+        if (refinementsJSON) {
+            // Double encode for Salesforce Commerce
+            const encoded = encodeURIComponent(encodeURIComponent(refinementsJSON));
+            url.searchParams.set('refinements', encoded);
+        } else {
+            url.searchParams.delete('refinements');
+        }
+
+        // Update the URL without full page reload
+        window.history.replaceState({}, '', url.toString());
+
+        console.log('resultsFilterBridge: Updated URL:', url.toString());
+
+        // Dispatch a custom event to notify results component of URL change
+        window.dispatchEvent(new CustomEvent('refinementchange', {
+            detail: { refinements: refinementsJSON }
+        }));
     }
 
     /**
-     * Build refinement string compatible with Salesforce search
+     * Build refinements JSON compatible with Salesforce Commerce ConnectApi
+     * Format: [{"nameOrId":"Shape__c","attributeType":"Custom","values":["Dad Hat"]}]
      */
-    buildRefinementString() {
-        const refinementParts = [];
+    buildRefinementsJSON() {
+        const refinements = [];
 
         for (const [filterId, values] of Object.entries(this.currentFilters)) {
             if (values.size > 0) {
-                const valueString = Array.from(values).join(',');
-
-                // Map your filter IDs to actual field API names
-                const fieldName = this.mapFilterIdToFieldName(filterId);
-                refinementParts.push(`${fieldName}:${valueString}`);
+                const refinement = {
+                    nameOrId: this.mapFilterIdToFieldName(filterId),
+                    attributeType: this.getAttributeType(filterId),
+                    values: Array.from(values)
+                };
+                refinements.push(refinement);
             }
         }
 
-        return refinementParts.join('|');
+        return refinements.length > 0 ? JSON.stringify(refinements) : null;
+    }
+
+    /**
+     * Get attribute type for a field (Standard, Custom, or ProductAttribute)
+     */
+    getAttributeType(filterId) {
+        const typeMapping = {
+            'productCode': 'Standard',
+            'shape': 'Custom',
+            'rushReady': 'Custom',
+            'endUser': 'Custom'
+        };
+
+        return typeMapping[filterId] || 'Custom';
     }
 
     /**
