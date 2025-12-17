@@ -157,6 +157,13 @@ export default class CustomResultsFilter extends LightningElement {
         const filterValue = event.detail.value;
         const checked = event.detail.checked;
 
+        console.log('customResultsFilter: Received filterchange, re-dispatching with category:', {
+            category: this.currentCategory,
+            filterId: filterId,
+            value: filterValue,
+            checked: checked
+        });
+
         // Dispatch event to parent/search results component
         this.dispatchEvent(new CustomEvent('filterchange', {
             bubbles: true,

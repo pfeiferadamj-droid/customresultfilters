@@ -26,3 +26,23 @@
     max-height: 300px;
     overflow-y: auto;
 }
+
+/* Black checkbox styling */
+lightning-checkbox-group,
+lightning-input[type="checkbox"] {
+    --slds-c-checkbox-color-border: #000000;
+    --slds-c-checkbox-mark-color-foreground: #ffffff;
+    --slds-c-checkbox-color-background-checked: #000000;
+}
+
+/* Ensure checkboxes within the component use black styling */
+.facet-content lightning-checkbox-group::part(label),
+.facet-content lightning-input[type="checkbox"]::part(label) {
+    color: #000000;
+}
+
+/* Style for checked state */
+.facet-content input[type="checkbox"]:checked {
+    background-color: #000000;
+    border-color: #000000;
+}
