@@ -9,6 +9,7 @@
     <targetConfigs>
         <targetConfig targets="lightningCommunity__Default">
             <property name="categoryId" type="String" label="Category ID" description="The category ID to display products from. If not provided, will attempt to resolve from URL or page context." />
+            <property name="categoryName" type="String" label="Category Name" description="The category name (e.g., 'Quick Turn', 'My Products'). Used to filter which filter events this component responds to. Must match the category name from customResultsFilter." />
             <property name="webstoreId" type="String" label="Webstore ID" description="The webstore ID (REQUIRED)" />
             <property name="layout" type="String" label="Layout" description="Layout type: grid or list" default="grid" />
             <property name="productsPerPage" type="Integer" label="Products Per Page" description="Number of products to show per page" default="12" />
