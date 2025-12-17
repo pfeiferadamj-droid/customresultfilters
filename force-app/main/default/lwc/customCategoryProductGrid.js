@@ -138,6 +138,9 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     // Filter state
     @track activeFilters = {};
 
+    // Custom filter state - tracks filters from customResultsFilter component
+    currentFilters = {};
+
     // Store previous URL state to detect changes
     _previousSortRuleId = null;
     _previousRefinements = null;
@@ -195,6 +198,10 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         window.addEventListener('popstate', this.handleUrlChange);
         // Also listen for pushState/replaceState changes
         this.setupUrlChangeListener();
+
+        // Listen for custom filter events from customResultsFilter component
+        this.addEventListener('filterchange', this.handleCustomFilterChange.bind(this));
+        this.addEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
     }
 
     disconnectedCallback() {
@@ -350,32 +357,44 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.isLoadingProducts = true;
         this.error = null;
         try {
-            // Get refinements from URL (double URL-encoded)
+            // Start with an empty array of refinements
+            let refinementsArr = [];
+
+            // 1. Add custom filter refinements (from customResultsFilter component)
+            const customFilterRefinements = this.buildRefinementsFromFilters();
+            if (customFilterRefinements) {
+                const customRefinements = JSON.parse(customFilterRefinements);
+                refinementsArr.push(...customRefinements);
+                console.log('Added custom filter refinements:', customRefinements);
+            }
+
+            // 2. Get refinements from URL (double URL-encoded) - for native Salesforce filters
             const urlParams = new URLSearchParams(window.location.search);
             const refinementsParam = urlParams.get('refinements');
-            let refinementsJSON = null;
-
             if (refinementsParam) {
                 try {
                     // Decode double URL encoding
                     const decoded = decodeURIComponent(decodeURIComponent(refinementsParam));
-                    refinementsJSON = decoded;
-                    console.log('Decoded refinements:', decoded);
+                    const urlRefinements = JSON.parse(decoded);
+                    refinementsArr.push(...urlRefinements);
+                    console.log('Added URL refinements:', urlRefinements);
                 } catch (e) {
-                    console.error('Error decoding refinements:', e);
+                    console.error('Error decoding URL refinements:', e);
                 }
             }
 
+            // 3. Add parent restriction if needed
             if (this.restrictToParents) {
-                // 2025-12-16: when parents-only is specified, add a refinement to achieve this by custom field value.
-                let refinementsArr = JSON.parse(refinementsJSON ?? '[]');
                 refinementsArr.push({
                     attributeType: 'Custom',
                     nameOrId: FIELD_ISPARENT.fieldApiName,
                     values: [ PARENT_VALUE ],
                 });
-                refinementsJSON = JSON.stringify(refinementsArr);
+                console.log('Added parent restriction refinement');
             }
+
+            // Convert to JSON for Apex call
+            const refinementsJSON = refinementsArr.length > 0 ? JSON.stringify(refinementsArr) : null;
 
             console.log('Fetching products with params:', {
                 categoryId: this.resolvedCategoryId,
@@ -993,6 +1012,109 @@ handleShowProduct(event) {
         this.activeFilters = {};
         this.currentPage = 1;
         this.fetchProducts();
+    }
+
+    /**
+     * Handle filter value change from customResultsFilter component
+     * Event format: { category, filterId, value, checked }
+     */
+    handleCustomFilterChange(event) {
+        console.log('customCategoryProductGrid: Received filterchange event', event.detail);
+
+        const { filterId, value, checked } = event.detail;
+
+        // Initialize filter array if needed
+        if (!this.currentFilters[filterId]) {
+            this.currentFilters[filterId] = [];
+        }
+
+        // Update filter values
+        if (checked) {
+            // Add value if not already present
+            if (!this.currentFilters[filterId].includes(value)) {
+                this.currentFilters[filterId].push(value);
+            }
+        } else {
+            // Remove value
+            this.currentFilters[filterId] = this.currentFilters[filterId].filter(v => v !== value);
+
+            // Remove filter key if empty
+            if (this.currentFilters[filterId].length === 0) {
+                delete this.currentFilters[filterId];
+            }
+        }
+
+        console.log('customCategoryProductGrid: Current filters:', this.currentFilters);
+
+        // Reset to page 1 when filters change
+        this.currentPage = 1;
+
+        // Reload products with updated filters
+        this.fetchProducts();
+    }
+
+    /**
+     * Handle clear all filters from customResultsFilter component
+     */
+    handleClearAllFilters(event) {
+        console.log('customCategoryProductGrid: Clearing all custom filters');
+
+        // Clear all custom filters
+        this.currentFilters = {};
+        this.currentPage = 1;
+        this.fetchProducts();
+    }
+
+    /**
+     * Build refinements JSON for CategoryProductController from currentFilters
+     * Converts our filter format to the format expected by the Apex controller
+     */
+    buildRefinementsFromFilters() {
+        const refinements = [];
+
+        for (const [filterId, values] of Object.entries(this.currentFilters)) {
+            if (values && values.length > 0) {
+                const refinement = {
+                    nameOrId: this.mapFilterIdToFieldName(filterId),
+                    attributeType: this.getAttributeType(filterId),
+                    values: values
+                };
+                refinements.push(refinement);
+            }
+        }
+
+        const json = refinements.length > 0 ? JSON.stringify(refinements) : null;
+        console.log('customCategoryProductGrid: Built refinementsJSON from filters:', json);
+        return json;
+    }
+
+    /**
+     * Map filter IDs to actual Salesforce field API names
+     * TODO: Update these field names to match your actual Salesforce schema
+     */
+    mapFilterIdToFieldName(filterId) {
+        const fieldMapping = {
+            'productCode': 'ProductCode',      // Standard field
+            'shape': 'Shape__c',               // TODO: Replace with actual Shape field API name
+            'rushReady': 'Rush_Ready__c',      // TODO: Replace with actual Rush Ready field API name
+            'endUser': 'End_User__c'           // TODO: Replace with actual End User field API name
+        };
+
+        return fieldMapping[filterId] || filterId;
+    }
+
+    /**
+     * Get attribute type for a field (Standard, Custom, or ProductAttribute)
+     */
+    getAttributeType(filterId) {
+        const typeMapping = {
+            'productCode': 'Standard',      // Standard Salesforce field
+            'shape': 'Custom',              // Custom field
+            'rushReady': 'Custom',          // Custom field
+            'endUser': 'Custom'             // Custom field
+        };
+
+        return typeMapping[filterId] || 'Custom';
     }
 
     /**
