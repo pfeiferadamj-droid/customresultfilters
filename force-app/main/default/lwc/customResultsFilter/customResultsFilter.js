@@ -1,5 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
+import { publish, MessageContext } from 'lightning/messageService';
+import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 import getFilterData from '@salesforce/apex/CustomFilterController.getFilterData';
 
 /**
@@ -19,6 +21,10 @@ export default class CustomResultsFilter extends LightningElement {
     filterData;
     error;
     isLoading = true;
+
+    // Lightning Message Service context
+    @wire(MessageContext)
+    messageContext;
 
     // Category slug to display name mapping
     categoryMapping = {
@@ -164,7 +170,18 @@ export default class CustomResultsFilter extends LightningElement {
             checked: checked
         });
 
-        // Dispatch event to parent/search results component
+        // Publish to Lightning Message Service for sibling components
+        const payload = {
+            action: 'filterchange',
+            category: this.currentCategory,
+            filterId: filterId,
+            value: filterValue,
+            checked: checked
+        };
+        publish(this.messageContext, FILTER_CHANGE_CHANNEL, payload);
+        console.log('customResultsFilter: Published LMS message:', payload);
+
+        // Also dispatch event for parent/child component hierarchy
         this.dispatchEvent(new CustomEvent('filterchange', {
             bubbles: true,
             composed: true,
@@ -181,7 +198,15 @@ export default class CustomResultsFilter extends LightningElement {
      * Handle clear all filters
      */
     handleClearAll() {
-        // Dispatch event to clear all filters
+        // Publish to Lightning Message Service for sibling components
+        const payload = {
+            action: 'clearall',
+            category: this.currentCategory
+        };
+        publish(this.messageContext, FILTER_CHANGE_CHANNEL, payload);
+        console.log('customResultsFilter: Published LMS clearall message:', payload);
+
+        // Also dispatch event for parent/child component hierarchy
         this.dispatchEvent(new CustomEvent('clearallfilters', {
             bubbles: true,
             composed: true,

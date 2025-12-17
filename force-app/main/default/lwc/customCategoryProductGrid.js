@@ -1,5 +1,7 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
+import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
+import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 import getCategoryProducts from '@salesforce/apex/CategoryProductController.getCategoryProducts';
 
 // Field used to filter to parents only.
@@ -145,6 +147,12 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     _previousSortRuleId = null;
     _previousRefinements = null;
 
+    // Lightning Message Service for filter communication
+    @wire(MessageContext)
+    messageContext;
+
+    subscription = null;
+
     @wire(CurrentPageReference)
     handlePageReference(pageRef) {
         this.pageRef = pageRef;
@@ -199,13 +207,69 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         // Also listen for pushState/replaceState changes
         this.setupUrlChangeListener();
 
-        // Listen for custom filter events from customResultsFilter component
+        // Subscribe to Lightning Message Service for filter events
+        this.subscribeToFilterMessages();
+
+        // Listen for custom filter events from customResultsFilter component (for parent-child hierarchy)
         this.addEventListener('filterchange', this.handleCustomFilterChange.bind(this));
         this.addEventListener('clearallfilters', this.handleClearAllFilters.bind(this));
     }
 
     disconnectedCallback() {
         window.removeEventListener('popstate', this.handleUrlChange);
+        // Unsubscribe from Lightning Message Service
+        this.unsubscribeFromFilterMessages();
+    }
+
+    /**
+     * Subscribe to Lightning Message Service for filter events
+     */
+    subscribeToFilterMessages() {
+        if (!this.subscription) {
+            this.subscription = subscribe(
+                this.messageContext,
+                FILTER_CHANGE_CHANNEL,
+                (message) => this.handleLMSMessage(message)
+            );
+            console.log('customCategoryProductGrid: Subscribed to LMS filter messages');
+        }
+    }
+
+    /**
+     * Unsubscribe from Lightning Message Service
+     */
+    unsubscribeFromFilterMessages() {
+        if (this.subscription) {
+            unsubscribe(this.subscription);
+            this.subscription = null;
+            console.log('customCategoryProductGrid: Unsubscribed from LMS filter messages');
+        }
+    }
+
+    /**
+     * Handle Lightning Message Service messages
+     */
+    handleLMSMessage(message) {
+        console.log('customCategoryProductGrid: Received LMS message:', message);
+
+        if (message.action === 'filterchange') {
+            // Process filter change from LMS
+            this.handleCustomFilterChange({
+                detail: {
+                    category: message.category,
+                    filterId: message.filterId,
+                    value: message.value,
+                    checked: message.checked
+                }
+            });
+        } else if (message.action === 'clearall') {
+            // Process clear all from LMS
+            this.handleClearAllFilters({
+                detail: {
+                    category: message.category
+                }
+            });
+        }
     }
 
     /**
