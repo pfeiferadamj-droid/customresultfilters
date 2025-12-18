@@ -153,12 +153,17 @@ public with sharing class CustomFilterController {
 
             String query = 'SELECT Id, End_User__c, End_User__r.Name FROM Product2 WHERE ';
 
-            if (includeAccountEndUsers && accountId != null) {
+            // Handle null includeAccountEndUsers (treat as false)
+            Boolean includeAccount = (includeAccountEndUsers == true);
+
+            if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
                 query += 'Account__c = :accountId AND End_User__c != null';
+                System.debug('Querying by Account: ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
                 query += 'Contact__c = :contactId AND End_User__c != null';
+                System.debug('Querying by Contact: ' + contactId);
             }
 
             System.debug('Executing query: ' + query);
