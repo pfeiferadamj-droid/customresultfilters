@@ -28,6 +28,16 @@ public with sharing class CustomProductQueryController {
             System.debug('  pageNumber: ' + pageNumber);
             System.debug('  pageSize: ' + pageSize);
 
+            // Debug: Check how many products have these End Users (regardless of category)
+            Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
+            System.debug('  DEBUG: Total products with End User (no category filter): ' + productsWithEndUser);
+
+            // Debug: Check if category exists and has products
+            if (String.isNotBlank(categoryId)) {
+                Integer productsInCategory = [SELECT COUNT() FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId];
+                System.debug('  DEBUG: Total products in category: ' + productsInCategory);
+            }
+
             ProductQueryResult result = new ProductQueryResult();
 
             // Validate inputs
@@ -53,10 +63,15 @@ public with sharing class CustomProductQueryController {
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ';
 
-            // Add category filter if provided
+            // Add category filter if provided (commented out temporarily for debugging)
+            // TODO: Uncomment this once products are linked to categories via ProductCategoryProduct
+            /*
             if (String.isNotBlank(categoryId)) {
                 query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                System.debug('  Adding category filter for: ' + categoryId);
             }
+            */
+            System.debug('  NOTE: Category filter temporarily disabled to test End User filtering');
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -69,9 +84,12 @@ public with sharing class CustomProductQueryController {
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
                                'WHERE IsActive = true ' +
                                'AND End_User__c IN :endUserIds ';
+            // Category filter disabled (see above)
+            /*
             if (String.isNotBlank(categoryId)) {
                 countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
             }
+            */
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
