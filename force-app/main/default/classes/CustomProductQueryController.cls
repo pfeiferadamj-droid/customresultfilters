@@ -55,7 +55,7 @@ public with sharing class CustomProductQueryController {
 
             // Add category filter if provided
             if (String.isNotBlank(categoryId)) {
-                query += 'AND Id IN (SELECT Product2Id FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
             }
 
             query += 'ORDER BY Name ASC ' +
@@ -70,7 +70,7 @@ public with sharing class CustomProductQueryController {
                                'WHERE IsActive = true ' +
                                'AND End_User__c IN :endUserIds ';
             if (String.isNotBlank(categoryId)) {
-                countQuery += 'AND Id IN (SELECT Product2Id FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
             }
 
             Integer totalCount = Database.countQuery(countQuery);
