@@ -88,6 +88,15 @@ categoryMapping = {
 };
 ```
 
+#### Check Category ID Mapping
+If your URL uses `/category/detail/{id}` format, update:
+```javascript
+categoryIdMapping = {
+    '0ZGbb000000FFOXGA4': 'My Products',
+    '0ZGbb000000F5llGAC': 'Quick Turn'
+};
+```
+
 #### Verify Category Name in Console
 When on My Products page, check console:
 ```
@@ -95,6 +104,45 @@ customResultsFilter: Category changed from null to "My Products"
 ```
 
 If you see a different name or null, update the categoryMapping.
+
+---
+
+## Issue 4: End User Filters Not Working with Native Results
+
+### Problem
+End User filters appear but don't filter the native Salesforce results component.
+
+### Root Cause
+**Lookup fields are not indexable** in Salesforce B2B Commerce Search.
+
+The `End_User__c` field is a lookup to the `End_User__c` custom object. Commerce Search can only index:
+- Standard fields (ProductCode, Name, etc.)
+- Custom text/picklist/checkbox fields
+- Product Attributes
+
+### Solution
+
+**Option A: Use customCategoryProductGrid (Recommended)**
+- Works perfectly with lookup fields via SOQL queries
+- No additional setup needed
+- See DEPLOYMENT_STRATEGY.md
+
+**Option B: Use Product Attributes (Complex)**
+- Replace custom lookup with Product Attribute
+- Set up sync mechanism (Flow/trigger)
+- See PRODUCT_ATTRIBUTES_SETUP.md
+
+### Which Components Work with Lookup Filters?
+
+| Component | Works with End_User__c Lookup? |
+|-----------|-------------------------------|
+| customCategoryProductGrid | ✅ Yes (uses SOQL) |
+| Native Salesforce results | ❌ No (uses Commerce Search) |
+| resultsFilterBridge | ❌ No (passes to Commerce Search) |
+
+**Recommended Setup:**
+- **Quick Turn page:** Use native results (all fields indexable)
+- **My Products page:** Use customCategoryProductGrid (works with lookups)
 
 ---
 
