@@ -547,14 +547,16 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             categoryId: this.resolvedCategoryId,
             endUserIds: endUserIds,
             pageNumber: this.currentPage,
-            pageSize: this.productsPerPage
+            pageSize: this.productsPerPage,
+            restrictToParents: this.restrictToParents
         });
 
         const result = await getProductsByEndUser({
             categoryId: this.resolvedCategoryId,
             endUserIds: endUserIds,
             pageNumber: this.currentPage,
-            pageSize: this.productsPerPage
+            pageSize: this.productsPerPage,
+            restrictToParents: this.restrictToParents
         });
 
         console.log('SOQL query result:', result);

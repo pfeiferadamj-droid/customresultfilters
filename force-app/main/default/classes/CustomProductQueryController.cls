@@ -12,6 +12,7 @@ public with sharing class CustomProductQueryController {
      * @param endUserIds List of End User IDs to filter by
      * @param pageNumber Current page number (1-indexed)
      * @param pageSize Number of products per page
+     * @param restrictToParents True to only return parent products (Is_Parent__c = 'Yes')
      * @return ProductQueryResult containing products and pagination info
      */
     @AuraEnabled
@@ -19,7 +20,8 @@ public with sharing class CustomProductQueryController {
         String categoryId,
         List<String> endUserIds,
         Integer pageNumber,
-        Integer pageSize
+        Integer pageSize,
+        Boolean restrictToParents
     ) {
         try {
             System.debug('CustomProductQueryController.getProductsByEndUser called');
@@ -27,6 +29,7 @@ public with sharing class CustomProductQueryController {
             System.debug('  endUserIds: ' + endUserIds);
             System.debug('  pageNumber: ' + pageNumber);
             System.debug('  pageSize: ' + pageSize);
+            System.debug('  restrictToParents: ' + restrictToParents);
 
             // Debug: Check how many products have these End Users (regardless of category)
             Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
@@ -58,10 +61,16 @@ public with sharing class CustomProductQueryController {
             // Build the query
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
                           'End_User__c, End_User__r.Name, Contact__c, Account__c, ' +
-                          'Shape__c, Rush_Ready__c, IsActive ' +
+                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ';
+
+            // Add parent restriction if needed
+            if (restrictToParents != null && restrictToParents) {
+                query += 'AND Is_Parent__c = \'Yes\' ';
+                System.debug('  Adding parent restriction: Is_Parent__c = Yes');
+            }
 
             // Add category filter if provided (commented out temporarily for debugging)
             // TODO: Uncomment this once products are linked to categories via ProductCategoryProduct
@@ -84,6 +93,12 @@ public with sharing class CustomProductQueryController {
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
                                'WHERE IsActive = true ' +
                                'AND End_User__c IN :endUserIds ';
+
+            // Add parent restriction to count query
+            if (restrictToParents != null && restrictToParents) {
+                countQuery += 'AND Is_Parent__c = \'Yes\' ';
+            }
+
             // Category filter disabled (see above)
             /*
             if (String.isNotBlank(categoryId)) {
