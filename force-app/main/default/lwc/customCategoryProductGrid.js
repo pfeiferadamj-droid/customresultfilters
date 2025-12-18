@@ -1203,10 +1203,10 @@ handleShowProduct(event) {
      */
     getAttributeType(filterId) {
         const typeMapping = {
-            'productCode': 'Standard',      // Standard Salesforce field
-            'shape': 'Custom',              // Custom field
-            'rushReady': 'Custom',          // Custom field
-            'endUser': 'Custom'             // Custom field
+            'productCode': 'Standard',          // Standard Salesforce field
+            'shape': 'Custom',                  // Custom field (picklist)
+            'rushReady': 'ProductAttribute',    // Boolean field - use ProductAttribute
+            'endUser': 'Custom'                 // Custom field (lookup)
         };
 
         return typeMapping[filterId] || 'Custom';

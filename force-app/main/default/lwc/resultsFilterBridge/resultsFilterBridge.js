@@ -199,10 +199,10 @@ export default class ResultsFilterBridge extends NavigationMixin(LightningElemen
      */
     getAttributeType(filterId) {
         const typeMapping = {
-            'productCode': 'Standard',
-            'shape': 'Custom',
-            'rushReady': 'Custom',
-            'endUser': 'Custom'
+            'productCode': 'Standard',          // Standard Salesforce field
+            'shape': 'Custom',                  // Custom field (picklist)
+            'rushReady': 'ProductAttribute',    // Boolean field - use ProductAttribute
+            'endUser': 'Custom'                 // Custom field (lookup)
         };
 
         return typeMapping[filterId] || 'Custom';

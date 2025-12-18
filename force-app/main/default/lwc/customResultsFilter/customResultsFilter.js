@@ -29,7 +29,14 @@ export default class CustomResultsFilter extends LightningElement {
     // Category slug to display name mapping
     categoryMapping = {
         'quick-turn': 'Quick Turn',
-        'my-products': 'My Products'
+        'my-products': 'My Products',
+        'detail': 'My Products'  // /category/detail/{id} format maps to My Products
+    };
+
+    // Category ID to display name mapping (for URLs without slugs)
+    categoryIdMapping = {
+        '0ZGbb000000FFOXGA4': 'My Products',  // Your My Products category ID
+        '0ZGbb000000F5llGAC': 'Quick Turn'    // Your Quick Turn category ID
     };
 
     // Wire to get current page reference (URL parameters)
@@ -65,17 +72,25 @@ export default class CustomResultsFilter extends LightningElement {
         }
 
         // Method 2: Parse URL path for Experience Cloud sites
-        // URL format: /category/quick-turn/0ZGbb000000F5llGAC
+        // URL format: /category/quick-turn/0ZGbb000000F5llGAC or /category/detail/0ZGbb000000FFOXGA4
         if (pageRef.attributes?.name || pageRef.type) {
             const url = window.location.href;
             const categoryMatch = url.match(/\/category\/([^\/]+)(?:\/([a-zA-Z0-9]{15,18}))?/);
 
             if (categoryMatch) {
-                const categorySlug = categoryMatch[1]; // e.g., "quick-turn"
+                const categorySlug = categoryMatch[1]; // e.g., "quick-turn" or "detail"
                 this.categoryId = categoryMatch[2]; // e.g., "0ZGbb000000F5llGAC"
 
-                // Map slug to display name
+                // Try to map by category ID first (more reliable)
+                if (this.categoryId && this.categoryIdMapping[this.categoryId]) {
+                    this.currentCategory = this.categoryIdMapping[this.categoryId];
+                    console.log('customResultsFilter: Mapped category ID', this.categoryId, 'to', this.currentCategory);
+                    return;
+                }
+
+                // Fallback to slug-based mapping
                 this.currentCategory = this.categoryMapping[categorySlug] || this.formatCategoryName(categorySlug);
+                console.log('customResultsFilter: Mapped category slug', categorySlug, 'to', this.currentCategory);
                 return;
             }
         }
