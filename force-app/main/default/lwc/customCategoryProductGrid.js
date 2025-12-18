@@ -3,6 +3,7 @@ import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
 import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 import getCategoryProducts from '@salesforce/apex/CategoryProductController.getCategoryProducts';
+import getProductsByEndUser from '@salesforce/apex/CustomProductQueryController.getProductsByEndUser';
 
 // Field used to filter to parents only.
 import FIELD_ISPARENT from '@salesforce/schema/Product2.Is_Parent__c';
@@ -432,83 +433,18 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.isLoadingProducts = true;
         this.error = null;
         try {
-            // Start with an empty array of refinements
-            let refinementsArr = [];
+            // Check if filtering by End User (lookup field)
+            const endUserFilterValues = this.currentFilters['endUser'];
+            const hasEndUserFilter = endUserFilterValues && endUserFilterValues.length > 0;
 
-            // 1. Add custom filter refinements (from customResultsFilter component)
-            const customFilterRefinements = this.buildRefinementsFromFilters();
-            if (customFilterRefinements) {
-                const customRefinements = JSON.parse(customFilterRefinements);
-                refinementsArr.push(...customRefinements);
-                console.log('Added custom filter refinements:', customRefinements);
+            if (hasEndUserFilter) {
+                // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
+                console.log('Using custom SOQL query for End User filter:', endUserFilterValues);
+                await this.fetchProductsByEndUser(endUserFilterValues);
+            } else {
+                // Use standard Commerce Search API for other filters
+                await this.fetchProductsViaCommerceSearch();
             }
-
-            // 2. Get refinements from URL (double URL-encoded) - for native Salesforce filters
-            const urlParams = new URLSearchParams(window.location.search);
-            const refinementsParam = urlParams.get('refinements');
-            if (refinementsParam) {
-                try {
-                    // Decode double URL encoding
-                    const decoded = decodeURIComponent(decodeURIComponent(refinementsParam));
-                    const urlRefinements = JSON.parse(decoded);
-                    refinementsArr.push(...urlRefinements);
-                    console.log('Added URL refinements:', urlRefinements);
-                } catch (e) {
-                    console.error('Error decoding URL refinements:', e);
-                }
-            }
-
-            // 3. Add parent restriction if needed
-            if (this.restrictToParents) {
-                refinementsArr.push({
-                    attributeType: 'Custom',
-                    nameOrId: FIELD_ISPARENT.fieldApiName,
-                    values: [ PARENT_VALUE ],
-                });
-                console.log('Added parent restriction refinement');
-            }
-
-            // Convert to JSON for Apex call
-            const refinementsJSON = refinementsArr.length > 0 ? JSON.stringify(refinementsArr) : null;
-
-            console.log('Fetching products with params:', {
-                categoryId: this.resolvedCategoryId,
-                webstoreId: this.webstoreId,
-                pageSize: this.productsPerPage,
-                pageNumber: this.currentPage,
-                sortRuleId: this.sortRuleId,
-                refinementsJSON: refinementsJSON
-            });
-
-            const result = await getCategoryProducts({
-                categoryId: this.resolvedCategoryId,
-                webstoreId: this.webstoreId,
-                effectiveAccountId: null, // Will use current user's account
-                pageSize: this.productsPerPage,
-                pageNumber: this.currentPage,
-                sortRuleId: this.sortRuleId,
-                refinementsJSON: refinementsJSON
-            });
-
-            console.log('Apex result (raw):', result);
-
-            // Parse the JSON result from Apex
-            const parsedResult = JSON.parse(result);
-
-            // Extract search results and pricebook entries
-            this.searchResults = parsedResult.searchResults;
-            this.pricebookEntries = parsedResult.pricebookEntries;
-
-            // Calculate pagination info
-            const totalCount = this.searchResults?.productsPage?.total || 0;
-            this.totalProducts = totalCount;
-            this.totalPages = Math.ceil(totalCount / this.productsPerPage) || 1;
-
-            console.log('Parsed search results:', this.searchResults);
-            console.log('Pricebook entries:', this.pricebookEntries);
-            console.log('Products found:', this.searchResults?.productsPage?.products?.length || 0);
-            console.log('Total products:', this.totalProducts);
-            console.log('Total pages:', this.totalPages);
         } catch (error) {
             console.error('Error fetching products:', error);
             console.error('Error details:', JSON.stringify(error));
@@ -517,6 +453,143 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         } finally {
             this.isLoadingProducts = false;
         }
+    }
+
+    /**
+     * Fetch products using Commerce Search API (for non-lookup filters)
+     */
+    async fetchProductsViaCommerceSearch() {
+        // Start with an empty array of refinements
+        let refinementsArr = [];
+
+        // 1. Add custom filter refinements (from customResultsFilter component)
+        // NOTE: buildRefinementsFromFilters() already excludes 'endUser' filter
+        const customFilterRefinements = this.buildRefinementsFromFilters();
+        if (customFilterRefinements) {
+            const customRefinements = JSON.parse(customFilterRefinements);
+            refinementsArr.push(...customRefinements);
+            console.log('Added custom filter refinements:', customRefinements);
+        }
+
+        // 2. Get refinements from URL (double URL-encoded) - for native Salesforce filters
+        const urlParams = new URLSearchParams(window.location.search);
+        const refinementsParam = urlParams.get('refinements');
+        if (refinementsParam) {
+            try {
+                // Decode double URL encoding
+                const decoded = decodeURIComponent(decodeURIComponent(refinementsParam));
+                const urlRefinements = JSON.parse(decoded);
+                refinementsArr.push(...urlRefinements);
+                console.log('Added URL refinements:', urlRefinements);
+            } catch (e) {
+                console.error('Error decoding URL refinements:', e);
+            }
+        }
+
+        // 3. Add parent restriction if needed
+        if (this.restrictToParents) {
+            refinementsArr.push({
+                attributeType: 'Custom',
+                nameOrId: FIELD_ISPARENT.fieldApiName,
+                values: [ PARENT_VALUE ],
+            });
+            console.log('Added parent restriction refinement');
+        }
+
+        // Convert to JSON for Apex call
+        const refinementsJSON = refinementsArr.length > 0 ? JSON.stringify(refinementsArr) : null;
+
+        console.log('Fetching products via Commerce Search with params:', {
+            categoryId: this.resolvedCategoryId,
+            webstoreId: this.webstoreId,
+            pageSize: this.productsPerPage,
+            pageNumber: this.currentPage,
+            sortRuleId: this.sortRuleId,
+            refinementsJSON: refinementsJSON
+        });
+
+        const result = await getCategoryProducts({
+            categoryId: this.resolvedCategoryId,
+            webstoreId: this.webstoreId,
+            effectiveAccountId: null, // Will use current user's account
+            pageSize: this.productsPerPage,
+            pageNumber: this.currentPage,
+            sortRuleId: this.sortRuleId,
+            refinementsJSON: refinementsJSON
+        });
+
+        console.log('Apex result (raw):', result);
+
+        // Parse the JSON result from Apex
+        const parsedResult = JSON.parse(result);
+
+        // Extract search results and pricebook entries
+        this.searchResults = parsedResult.searchResults;
+        this.pricebookEntries = parsedResult.pricebookEntries;
+
+        // Calculate pagination info
+        const totalCount = this.searchResults?.productsPage?.total || 0;
+        this.totalProducts = totalCount;
+        this.totalPages = Math.ceil(totalCount / this.productsPerPage) || 1;
+
+        console.log('Parsed search results:', this.searchResults);
+        console.log('Pricebook entries:', this.pricebookEntries);
+        console.log('Products found:', this.searchResults?.productsPage?.products?.length || 0);
+        console.log('Total products:', this.totalProducts);
+        console.log('Total pages:', this.totalPages);
+    }
+
+    /**
+     * Fetch products using custom SOQL query (for End User lookup filter)
+     */
+    async fetchProductsByEndUser(endUserIds) {
+        console.log('Fetching products by End User using SOQL:', {
+            categoryId: this.resolvedCategoryId,
+            endUserIds: endUserIds,
+            pageNumber: this.currentPage,
+            pageSize: this.productsPerPage
+        });
+
+        const result = await getProductsByEndUser({
+            categoryId: this.resolvedCategoryId,
+            endUserIds: endUserIds,
+            pageNumber: this.currentPage,
+            pageSize: this.productsPerPage
+        });
+
+        console.log('SOQL query result:', result);
+
+        // Convert custom result format to match Commerce Search format
+        // This allows the rest of the component to work unchanged
+        this.searchResults = {
+            productsPage: {
+                products: result.products.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    fields: {
+                        ProductCode: p.productCode,
+                        StockKeepingUnit: p.sku,
+                        Description: p.description,
+                        Shape__c: p.shapeValue,
+                        Rush_Ready__c: p.rushReady,
+                        End_User__c: p.endUserId
+                    }
+                })),
+                total: result.total
+            }
+        };
+
+        // Clear pricebook entries for now (could be enhanced later)
+        this.pricebookEntries = [];
+
+        // Calculate pagination info
+        this.totalProducts = result.total;
+        this.totalPages = Math.ceil(result.total / this.productsPerPage) || 1;
+
+        console.log('Converted to search results format');
+        console.log('Products found:', this.searchResults.productsPage.products.length);
+        console.log('Total products:', this.totalProducts);
+        console.log('Total pages:', this.totalPages);
     }
 
     /**
@@ -1163,11 +1236,19 @@ handleShowProduct(event) {
     /**
      * Build refinements JSON for CategoryProductController from currentFilters
      * Converts our filter format to the format expected by the Apex controller
+     * NOTE: Excludes 'endUser' filter because lookup fields cannot be used in Commerce Search refinements
      */
     buildRefinementsFromFilters() {
         const refinements = [];
 
         for (const [filterId, values] of Object.entries(this.currentFilters)) {
+            // Skip endUser filter - it's a lookup field and cannot be used in Commerce Search
+            // We'll handle End User filtering via direct SOQL query instead
+            if (filterId === 'endUser') {
+                console.log('customCategoryProductGrid: Skipping endUser filter (lookup field not supported in refinements)');
+                continue;
+            }
+
             if (values && values.length > 0) {
                 const refinement = {
                     nameOrId: this.mapFilterIdToFieldName(filterId),
