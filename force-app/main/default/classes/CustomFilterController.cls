@@ -130,15 +130,26 @@ public with sharing class CustomFilterController {
 
         try {
             Id currentUserId = UserInfo.getUserId();
+            System.debug('Getting end user values for userId: ' + currentUserId);
+            System.debug('includeAccountEndUsers: ' + includeAccountEndUsers);
 
             // Get the current user's Contact Id
             List<User> users = [SELECT ContactId, AccountId FROM User WHERE Id = :currentUserId LIMIT 1];
-            if (users.isEmpty() || users[0].ContactId == null) {
+            if (users.isEmpty()) {
+                System.debug('ERROR: User not found');
+                return values;
+            }
+
+            if (users[0].ContactId == null) {
+                System.debug('ERROR: User has no ContactId - this is a B2B Commerce requirement');
+                System.debug('User details: ' + users[0]);
                 return values;
             }
 
             Id contactId = users[0].ContactId;
             Id accountId = users[0].AccountId;
+            System.debug('User ContactId: ' + contactId);
+            System.debug('User AccountId: ' + accountId);
 
             String query = 'SELECT Id, End_User__c, End_User__r.Name FROM Product2 WHERE ';
 
@@ -150,7 +161,9 @@ public with sharing class CustomFilterController {
                 query += 'Contact__c = :contactId AND End_User__c != null';
             }
 
+            System.debug('Executing query: ' + query);
             List<Product2> products = Database.query(query);
+            System.debug('Found ' + products.size() + ' products');
 
             // Collect unique end users
             Map<Id, String> endUserMap = new Map<Id, String>();
@@ -159,6 +172,8 @@ public with sharing class CustomFilterController {
                     endUserMap.put(product.End_User__c, product.End_User__r.Name);
                 }
             }
+
+            System.debug('Found ' + endUserMap.size() + ' unique end users');
 
             // Create filter values
             for (Id endUserId : endUserMap.keySet()) {
@@ -173,7 +188,9 @@ public with sharing class CustomFilterController {
             values.sort();
 
         } catch (Exception e) {
-            System.debug('Error getting end user values: ' + e.getMessage());
+            System.debug('ERROR in getEndUserValues: ' + e.getMessage());
+            System.debug('ERROR Type: ' + e.getTypeName());
+            System.debug('ERROR Stack Trace: ' + e.getStackTraceString());
             // Return sample values if objects don't exist yet
             values.add(createFilterValue('End User 1', 'enduser1', false));
             values.add(createFilterValue('End User 2', 'enduser2', false));
