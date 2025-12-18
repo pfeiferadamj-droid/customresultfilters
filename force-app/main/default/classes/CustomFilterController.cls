@@ -9,8 +9,9 @@ public with sharing class CustomFilterController {
      * @param category The category name (e.g., 'Quick Turn', 'My Products')
      * @param includeAccountEndUsers For My Products, whether to include all account end users
      * @return FilterDataWrapper containing the filters for the specified category
+     * NOTE: Not cacheable because End User values depend on current user context
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static FilterDataWrapper getFilterData(String category, Boolean includeAccountEndUsers) {
         FilterDataWrapper filterData = new FilterDataWrapper();
 
