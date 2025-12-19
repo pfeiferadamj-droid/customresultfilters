@@ -570,19 +570,25 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                     id: p.id,
                     name: p.name,
                     fields: {
-                        ProductCode: p.productCode,
-                        StockKeepingUnit: p.sku,
-                        Description: p.description,
-                        Shape__c: p.shapeValue,
-                        Rush_Ready__c: p.rushReady,
-                        End_User__c: p.endUserId
+                        Name: { value: p.name },
+                        ProductCode: { value: p.productCode },
+                        StockKeepingUnit: { value: p.sku },
+                        Description: { value: p.description },
+                        Shape__c: { value: p.shapeValue },
+                        Rush_Ready__c: { value: p.rushReady },
+                        End_User__c: { value: p.endUserId }
                     },
                     // Include product image if available
                     defaultImage: p.imageUrl ? {
                         url: p.imageUrl,
                         alternateText: p.imageAltText || p.name,
                         title: p.name
-                    } : null
+                    } : null,
+                    // Add empty prices structure - will be populated by selectPriceForPricebook
+                    // or default to null if no pricebook entries exist
+                    prices: {
+                        currencyIsoCode: 'USD'
+                    }
                 })),
                 total: result.total
             }
