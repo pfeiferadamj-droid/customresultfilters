@@ -556,7 +556,8 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             endUserIds: endUserIds,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
-            restrictToParents: this.restrictToParents
+            restrictToParents: this.restrictToParents,
+            webstoreId: this.webstoreId
         });
 
         console.log('SOQL query result:', result);

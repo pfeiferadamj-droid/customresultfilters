@@ -13,6 +13,7 @@ public with sharing class CustomProductQueryController {
      * @param pageNumber Current page number (1-indexed)
      * @param pageSize Number of products per page
      * @param restrictToParents True to only return parent products (Is_Parent__c = 'Yes')
+     * @param webstoreId The webstore ID for constructing image URLs
      * @return ProductQueryResult containing products and pagination info
      */
     @AuraEnabled
@@ -21,7 +22,8 @@ public with sharing class CustomProductQueryController {
         List<String> endUserIds,
         Integer pageNumber,
         Integer pageSize,
-        Boolean restrictToParents
+        Boolean restrictToParents,
+        String webstoreId
     ) {
         try {
             System.debug('CustomProductQueryController.getProductsByEndUser called');
@@ -99,7 +101,7 @@ public with sharing class CustomProductQueryController {
 
                 // Query ProductMedia for these products
                 List<ProductMedia> mediaList = [
-                    SELECT ProductId, MediaUrl, AlternateText
+                    SELECT ProductId, ContentDocumentId__c
                     FROM ProductMedia
                     WHERE ProductId IN :productIds
                     ORDER BY SortOrder ASC NULLS LAST
@@ -107,10 +109,23 @@ public with sharing class CustomProductQueryController {
 
                 System.debug('Found ' + mediaList.size() + ' ProductMedia records');
 
+                // Get base URL and org ID for constructing image URLs
+                String baseUrl = Site.getBaseUrl();
+                String orgId = UserInfo.getOrganizationId();
+
                 // Map first image to each product
                 for (ProductMedia media : mediaList) {
-                    if (!productImageMap.containsKey(media.ProductId)) {
-                        productImageMap.put(media.ProductId, media.MediaUrl);
+                    if (!productImageMap.containsKey(media.ProductId) && String.isNotBlank(media.ContentDocumentId__c)) {
+                        // Construct the image URL using CMS delivery pattern
+                        String imageUrl = baseUrl +
+                            '/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,width=330' +
+                            '/shop/sfsites/c/cms/delivery/media/' +
+                            media.ContentDocumentId__c +
+                            '?version=1.1&channelId=' + webstoreId +
+                            '&oid=' + orgId;
+
+                        productImageMap.put(media.ProductId, imageUrl);
+                        System.debug('  Constructed image URL for product ' + media.ProductId + ': ' + imageUrl);
                     }
                 }
             }
