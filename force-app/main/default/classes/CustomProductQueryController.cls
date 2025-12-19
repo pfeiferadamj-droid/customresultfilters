@@ -150,6 +150,35 @@ public with sharing class CustomProductQueryController {
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
 
+            // Query pricebook entries for these products
+            Map<Id, List<PricebookEntryInfo>> productPriceMap = new Map<Id, List<PricebookEntryInfo>>();
+            if (!products.isEmpty()) {
+                Set<Id> productIds = new Set<Id>();
+                for (Product2 p : products) {
+                    productIds.add(p.Id);
+                }
+
+                List<PricebookEntry> priceEntries = [
+                    SELECT Id, Product2Id, Pricebook2Id, UnitPrice, IsActive
+                    FROM PricebookEntry
+                    WHERE Product2Id IN :productIds
+                    AND IsActive = true
+                    ORDER BY Product2Id ASC, Pricebook2Id ASC
+                ];
+
+                System.debug('Found ' + priceEntries.size() + ' pricebook entries');
+
+                for (PricebookEntry pbe : priceEntries) {
+                    if (!productPriceMap.containsKey(pbe.Product2Id)) {
+                        productPriceMap.put(pbe.Product2Id, new List<PricebookEntryInfo>());
+                    }
+                    PricebookEntryInfo priceInfo = new PricebookEntryInfo();
+                    priceInfo.pricebookId = pbe.Pricebook2Id;
+                    priceInfo.unitPrice = pbe.UnitPrice;
+                    productPriceMap.get(pbe.Product2Id).add(priceInfo);
+                }
+            }
+
             // Convert to wrapper objects
             List<ProductWrapper> wrappedProducts = new List<ProductWrapper>();
             for (Product2 p : products) {
@@ -176,8 +205,10 @@ public with sharing class CustomProductQueryController {
             result.total = totalCount;
             result.pageNumber = page;
             result.pageSize = size;
+            result.pricebookEntries = productPriceMap;
 
             System.debug('Returning result with ' + result.products.size() + ' products');
+            System.debug('  With pricebook entries for ' + result.pricebookEntries.size() + ' products');
             return result;
 
         } catch (Exception e) {
@@ -195,6 +226,7 @@ public with sharing class CustomProductQueryController {
         @AuraEnabled public Integer total { get; set; }
         @AuraEnabled public Integer pageNumber { get; set; }
         @AuraEnabled public Integer pageSize { get; set; }
+        @AuraEnabled public Map<Id, List<PricebookEntryInfo>> pricebookEntries { get; set; }
     }
 
     /**
@@ -212,5 +244,13 @@ public with sharing class CustomProductQueryController {
         @AuraEnabled public Boolean rushReady { get; set; }
         @AuraEnabled public String imageUrl { get; set; }
         @AuraEnabled public String imageAltText { get; set; }
+    }
+
+    /**
+     * Wrapper class for pricebook entry information
+     */
+    public class PricebookEntryInfo {
+        @AuraEnabled public String pricebookId { get; set; }
+        @AuraEnabled public Decimal unitPrice { get; set; }
     }
 }

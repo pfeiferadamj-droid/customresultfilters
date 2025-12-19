@@ -594,8 +594,8 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             }
         };
 
-        // Clear pricebook entries for now (could be enhanced later)
-        this.pricebookEntries = [];
+        // Set pricebook entries from the result
+        this.pricebookEntries = result.pricebookEntries || {};
 
         // Calculate pagination info
         this.totalProducts = result.total;
