@@ -58,10 +58,11 @@ public with sharing class CustomProductQueryController {
             Integer size = pageSize != null ? pageSize : 12;
             Integer offset = (page - 1) * size;
 
-            // Build the query
+            // Build the query - include fields needed for product display
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
                           'End_User__c, End_User__r.Name, Contact__c, Account__c, ' +
-                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c ' +
+                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c, ' +
+                          '(SELECT Id, Url, AlternateText, Title FROM ProductMedia LIMIT 1) ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ';
@@ -122,6 +123,17 @@ public with sharing class CustomProductQueryController {
                 pw.endUserName = p.End_User__c != null ? p.End_User__r.Name : null;
                 pw.shapeValue = p.Shape__c;
                 pw.rushReady = p.Rush_Ready__c != null ? p.Rush_Ready__c : false;
+
+                // Include image from ProductMedia
+                if (p.ProductMedia != null && !p.ProductMedia.isEmpty()) {
+                    ProductMedia media = p.ProductMedia[0];
+                    pw.imageUrl = media.Url;
+                    pw.imageAltText = media.AlternateText;
+                } else {
+                    pw.imageUrl = null;
+                    pw.imageAltText = null;
+                }
+
                 wrappedProducts.add(pw);
             }
 
@@ -164,5 +176,7 @@ public with sharing class CustomProductQueryController {
         @AuraEnabled public String endUserName { get; set; }
         @AuraEnabled public String shapeValue { get; set; }
         @AuraEnabled public Boolean rushReady { get; set; }
+        @AuraEnabled public String imageUrl { get; set; }
+        @AuraEnabled public String imageAltText { get; set; }
     }
 }

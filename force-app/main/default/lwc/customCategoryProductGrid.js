@@ -575,7 +575,13 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                         Shape__c: p.shapeValue,
                         Rush_Ready__c: p.rushReady,
                         End_User__c: p.endUserId
-                    }
+                    },
+                    // Include product image if available
+                    defaultImage: p.imageUrl ? {
+                        url: p.imageUrl,
+                        alternateText: p.imageAltText || p.name,
+                        title: p.name
+                    } : null
                 })),
                 total: result.total
             }
