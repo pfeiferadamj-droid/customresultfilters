@@ -99,10 +99,9 @@ public with sharing class CustomProductQueryController {
                     productIds.add(p.Id);
                 }
 
-                // Query ProductMedia with ElectronicMedia relationship to get ContentKey
-                // Using relationship query to bypass ManagedContent visibility restrictions
+                // Query ProductMedia for these products
                 List<ProductMedia> mediaList = [
-                    SELECT ProductId, ElectronicMediaId, ElectronicMedia.ContentKey
+                    SELECT ProductId, ElectronicMediaId
                     FROM ProductMedia
                     WHERE ProductId IN :productIds
                     ORDER BY SortOrder ASC NULLS LAST
@@ -110,17 +109,29 @@ public with sharing class CustomProductQueryController {
 
                 System.debug('Found ' + mediaList.size() + ' ProductMedia records');
 
+                // Collect ElectronicMediaIds to query ManagedContent
+                Set<Id> electronicMediaIds = new Set<Id>();
+                for (ProductMedia media : mediaList) {
+                    if (media.ElectronicMediaId != null) {
+                        electronicMediaIds.add(media.ElectronicMediaId);
+                    }
+                }
+
+                // Query ManagedContent without sharing restrictions (guest user can't access directly)
+                Map<Id, String> contentKeyMap = ManagedContentHelper.getContentKeys(electronicMediaIds);
+                System.debug('Retrieved ContentKeys for ' + contentKeyMap.size() + ' ManagedContent records');
+
                 // Get base URL and org ID for constructing image URLs
                 String baseUrl = Site.getBaseUrl();
                 String orgId = UserInfo.getOrganizationId();
 
-                // Map first image to each product using ContentKey from relationship
+                // Map first image to each product using ContentKey
                 for (ProductMedia media : mediaList) {
                     if (!productImageMap.containsKey(media.ProductId) &&
-                        media.ElectronicMedia != null &&
-                        String.isNotBlank(media.ElectronicMedia.ContentKey)) {
+                        media.ElectronicMediaId != null &&
+                        contentKeyMap.containsKey(media.ElectronicMediaId)) {
 
-                        String contentKey = media.ElectronicMedia.ContentKey;
+                        String contentKey = contentKeyMap.get(media.ElectronicMediaId);
                         System.debug('  Product ' + media.ProductId + ' has ContentKey: ' + contentKey);
 
                         // Construct the image URL using CMS delivery pattern with ContentKey
@@ -259,5 +270,41 @@ public with sharing class CustomProductQueryController {
     public class PricebookEntryInfo {
         @AuraEnabled public String pricebookId { get; set; }
         @AuraEnabled public Decimal unitPrice { get; set; }
+    }
+
+    /**
+     * Helper class to query ManagedContent without sharing restrictions
+     * ManagedContent has visibility restrictions in guest/community contexts
+     * This allows the query to run in system mode to retrieve ContentKeys
+     */
+    public without sharing class ManagedContentHelper {
+        public static Map<Id, String> getContentKeys(Set<Id> managedContentIds) {
+            Map<Id, String> contentKeyMap = new Map<Id, String>();
+
+            if (managedContentIds == null || managedContentIds.isEmpty()) {
+                return contentKeyMap;
+            }
+
+            try {
+                List<ManagedContent> managedContentList = [
+                    SELECT Id, ContentKey
+                    FROM ManagedContent
+                    WHERE Id IN :managedContentIds
+                ];
+
+                System.debug('ManagedContentHelper found ' + managedContentList.size() + ' ManagedContent records');
+
+                for (ManagedContent mc : managedContentList) {
+                    if (String.isNotBlank(mc.ContentKey)) {
+                        contentKeyMap.put(mc.Id, mc.ContentKey);
+                        System.debug('  ManagedContent ' + mc.Id + ' has ContentKey: ' + mc.ContentKey);
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('Error querying ManagedContent: ' + e.getMessage());
+            }
+
+            return contentKeyMap;
+        }
     }
 }
