@@ -99,9 +99,10 @@ public with sharing class CustomProductQueryController {
                     productIds.add(p.Id);
                 }
 
-                // Query ProductMedia for these products
+                // Query ProductMedia with ElectronicMedia relationship to get ContentKey
+                // Using relationship query to bypass ManagedContent visibility restrictions
                 List<ProductMedia> mediaList = [
-                    SELECT ProductId, ElectronicMediaId
+                    SELECT ProductId, ElectronicMediaId, ElectronicMedia.ContentKey
                     FROM ProductMedia
                     WHERE ProductId IN :productIds
                     ORDER BY SortOrder ASC NULLS LAST
@@ -109,44 +110,18 @@ public with sharing class CustomProductQueryController {
 
                 System.debug('Found ' + mediaList.size() + ' ProductMedia records');
 
-                // Collect ElectronicMediaIds to query ManagedContent
-                Set<Id> electronicMediaIds = new Set<Id>();
-                for (ProductMedia media : mediaList) {
-                    if (media.ElectronicMediaId != null) {
-                        electronicMediaIds.add(media.ElectronicMediaId);
-                    }
-                }
-
-                // Query ManagedContent to get ContentKey
-                Map<Id, String> contentKeyMap = new Map<Id, String>();
-                if (!electronicMediaIds.isEmpty()) {
-                    List<ManagedContent> managedContentList = [
-                        SELECT Id, ContentKey
-                        FROM ManagedContent
-                        WHERE Id IN :electronicMediaIds
-                    ];
-
-                    System.debug('Found ' + managedContentList.size() + ' ManagedContent records');
-
-                    for (ManagedContent mc : managedContentList) {
-                        if (String.isNotBlank(mc.ContentKey)) {
-                            contentKeyMap.put(mc.Id, mc.ContentKey);
-                            System.debug('  ManagedContent ' + mc.Id + ' has ContentKey: ' + mc.ContentKey);
-                        }
-                    }
-                }
-
                 // Get base URL and org ID for constructing image URLs
                 String baseUrl = Site.getBaseUrl();
                 String orgId = UserInfo.getOrganizationId();
 
-                // Map first image to each product using ContentKey
+                // Map first image to each product using ContentKey from relationship
                 for (ProductMedia media : mediaList) {
                     if (!productImageMap.containsKey(media.ProductId) &&
-                        media.ElectronicMediaId != null &&
-                        contentKeyMap.containsKey(media.ElectronicMediaId)) {
+                        media.ElectronicMedia != null &&
+                        String.isNotBlank(media.ElectronicMedia.ContentKey)) {
 
-                        String contentKey = contentKeyMap.get(media.ElectronicMediaId);
+                        String contentKey = media.ElectronicMedia.ContentKey;
+                        System.debug('  Product ' + media.ProductId + ' has ContentKey: ' + contentKey);
 
                         // Construct the image URL using CMS delivery pattern with ContentKey
                         String imageUrl = baseUrl +
