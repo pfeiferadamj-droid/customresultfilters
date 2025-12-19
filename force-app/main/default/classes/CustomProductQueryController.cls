@@ -61,8 +61,7 @@ public with sharing class CustomProductQueryController {
             // Build the query - include fields needed for product display
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
                           'End_User__c, End_User__r.Name, Contact__c, Account__c, ' +
-                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c, ' +
-                          '(SELECT Id, Url, AlternateText, Title FROM ProductMedia LIMIT 1) ' +
+                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ';
@@ -89,6 +88,32 @@ public with sharing class CustomProductQueryController {
             System.debug('Executing query: ' + query);
             List<Product2> products = Database.query(query);
             System.debug('Found ' + products.size() + ' products');
+
+            // Get product images - query ProductMedia separately
+            Map<Id, String> productImageMap = new Map<Id, String>();
+            if (!products.isEmpty()) {
+                Set<Id> productIds = new Set<Id>();
+                for (Product2 p : products) {
+                    productIds.add(p.Id);
+                }
+
+                // Query ProductMedia for these products
+                List<ProductMedia> mediaList = [
+                    SELECT ProductId, Url, AlternateText
+                    FROM ProductMedia
+                    WHERE ProductId IN :productIds
+                    ORDER BY SortOrder ASC NULLS LAST
+                ];
+
+                System.debug('Found ' + mediaList.size() + ' ProductMedia records');
+
+                // Map first image to each product
+                for (ProductMedia media : mediaList) {
+                    if (!productImageMap.containsKey(media.ProductId)) {
+                        productImageMap.put(media.ProductId, media.Url);
+                    }
+                }
+            }
 
             // Get total count for pagination
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
@@ -124,16 +149,9 @@ public with sharing class CustomProductQueryController {
                 pw.shapeValue = p.Shape__c;
                 pw.rushReady = p.Rush_Ready__c != null ? p.Rush_Ready__c : false;
 
-                // Include image from ProductMedia
-                List<SObject> mediaRecords = p.getSObjects('ProductMedia');
-                if (mediaRecords != null && !mediaRecords.isEmpty()) {
-                    SObject media = mediaRecords[0];
-                    pw.imageUrl = (String)media.get('Url');
-                    pw.imageAltText = (String)media.get('AlternateText');
-                } else {
-                    pw.imageUrl = null;
-                    pw.imageAltText = null;
-                }
+                // Include image from ProductMedia map
+                pw.imageUrl = productImageMap.get(p.Id);
+                pw.imageAltText = p.Name; // Use product name as alt text
 
                 wrappedProducts.add(pw);
             }
