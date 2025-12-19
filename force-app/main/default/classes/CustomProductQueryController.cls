@@ -101,7 +101,7 @@ public with sharing class CustomProductQueryController {
 
                 // Query ProductMedia for these products
                 List<ProductMedia> mediaList = [
-                    SELECT ProductId, ContentDocumentId__c
+                    SELECT ProductId, ElectronicMediaId
                     FROM ProductMedia
                     WHERE ProductId IN :productIds
                     ORDER BY SortOrder ASC NULLS LAST
@@ -109,18 +109,50 @@ public with sharing class CustomProductQueryController {
 
                 System.debug('Found ' + mediaList.size() + ' ProductMedia records');
 
+                // Collect ElectronicMediaIds to query ManagedContent
+                Set<Id> electronicMediaIds = new Set<Id>();
+                for (ProductMedia media : mediaList) {
+                    if (media.ElectronicMediaId != null) {
+                        electronicMediaIds.add(media.ElectronicMediaId);
+                    }
+                }
+
+                // Query ManagedContent to get ContentKey
+                Map<Id, String> contentKeyMap = new Map<Id, String>();
+                if (!electronicMediaIds.isEmpty()) {
+                    List<ManagedContent> managedContentList = [
+                        SELECT Id, ContentKey
+                        FROM ManagedContent
+                        WHERE Id IN :electronicMediaIds
+                    ];
+
+                    System.debug('Found ' + managedContentList.size() + ' ManagedContent records');
+
+                    for (ManagedContent mc : managedContentList) {
+                        if (String.isNotBlank(mc.ContentKey)) {
+                            contentKeyMap.put(mc.Id, mc.ContentKey);
+                            System.debug('  ManagedContent ' + mc.Id + ' has ContentKey: ' + mc.ContentKey);
+                        }
+                    }
+                }
+
                 // Get base URL and org ID for constructing image URLs
                 String baseUrl = Site.getBaseUrl();
                 String orgId = UserInfo.getOrganizationId();
 
-                // Map first image to each product
+                // Map first image to each product using ContentKey
                 for (ProductMedia media : mediaList) {
-                    if (!productImageMap.containsKey(media.ProductId) && String.isNotBlank(media.ContentDocumentId__c)) {
-                        // Construct the image URL using CMS delivery pattern
+                    if (!productImageMap.containsKey(media.ProductId) &&
+                        media.ElectronicMediaId != null &&
+                        contentKeyMap.containsKey(media.ElectronicMediaId)) {
+
+                        String contentKey = contentKeyMap.get(media.ElectronicMediaId);
+
+                        // Construct the image URL using CMS delivery pattern with ContentKey
                         String imageUrl = baseUrl +
                             '/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,width=330' +
                             '/shop/sfsites/c/cms/delivery/media/' +
-                            media.ContentDocumentId__c +
+                            contentKey +
                             '?version=1.1&channelId=' + webstoreId +
                             '&oid=' + orgId;
 
