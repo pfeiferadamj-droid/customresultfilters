@@ -125,10 +125,11 @@ public with sharing class CustomProductQueryController {
                 pw.rushReady = p.Rush_Ready__c != null ? p.Rush_Ready__c : false;
 
                 // Include image from ProductMedia
-                if (p.ProductMedia != null && !p.ProductMedia.isEmpty()) {
-                    ProductMedia media = p.ProductMedia[0];
-                    pw.imageUrl = media.Url;
-                    pw.imageAltText = media.AlternateText;
+                List<SObject> mediaRecords = p.getSObjects('ProductMedia');
+                if (mediaRecords != null && !mediaRecords.isEmpty()) {
+                    SObject media = mediaRecords[0];
+                    pw.imageUrl = (String)media.get('Url');
+                    pw.imageAltText = (String)media.get('AlternateText');
                 } else {
                     pw.imageUrl = null;
                     pw.imageAltText = null;
