@@ -99,7 +99,7 @@ public with sharing class CustomProductQueryController {
 
                 // Query ProductMedia for these products
                 List<ProductMedia> mediaList = [
-                    SELECT ProductId, Url, AlternateText
+                    SELECT ProductId, MediaUrl, AlternateText
                     FROM ProductMedia
                     WHERE ProductId IN :productIds
                     ORDER BY SortOrder ASC NULLS LAST
@@ -110,7 +110,7 @@ public with sharing class CustomProductQueryController {
                 // Map first image to each product
                 for (ProductMedia media : mediaList) {
                     if (!productImageMap.containsKey(media.ProductId)) {
-                        productImageMap.put(media.ProductId, media.Url);
+                        productImageMap.put(media.ProductId, media.MediaUrl);
                     }
                 }
             }
