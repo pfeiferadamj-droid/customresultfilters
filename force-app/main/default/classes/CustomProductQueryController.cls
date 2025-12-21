@@ -92,60 +92,17 @@ public with sharing class CustomProductQueryController {
             System.debug('Found ' + products.size() + ' products');
 
             // Get product images - query ProductMedia separately
+            // Get product images using existing ManagedContentHelper
             Map<Id, String> productImageMap = new Map<Id, String>();
             if (!products.isEmpty()) {
-                Set<Id> productIds = new Set<Id>();
+                List<Id> productIds = new List<Id>();
                 for (Product2 p : products) {
                     productIds.add(p.Id);
                 }
 
-                // Query ProductMedia for these products
-                List<ProductMedia> mediaList = [
-                    SELECT ProductId, ElectronicMediaId
-                    FROM ProductMedia
-                    WHERE ProductId IN :productIds
-                    ORDER BY SortOrder ASC NULLS LAST
-                ];
-
-                System.debug('Found ' + mediaList.size() + ' ProductMedia records');
-
-                // Collect ElectronicMediaIds to query ManagedContent
-                Set<Id> electronicMediaIds = new Set<Id>();
-                for (ProductMedia media : mediaList) {
-                    if (media.ElectronicMediaId != null) {
-                        electronicMediaIds.add(media.ElectronicMediaId);
-                    }
-                }
-
-                // Query ManagedContent without sharing restrictions (guest user can't access directly)
-                Map<Id, String> contentKeyMap = ManagedContentHelper.getContentKeys(electronicMediaIds);
-                System.debug('Retrieved ContentKeys for ' + contentKeyMap.size() + ' ManagedContent records');
-
-                // Get base URL and org ID for constructing image URLs
-                String baseUrl = Site.getBaseUrl();
-                String orgId = UserInfo.getOrganizationId();
-
-                // Map first image to each product using ContentKey
-                for (ProductMedia media : mediaList) {
-                    if (!productImageMap.containsKey(media.ProductId) &&
-                        media.ElectronicMediaId != null &&
-                        contentKeyMap.containsKey(media.ElectronicMediaId)) {
-
-                        String contentKey = contentKeyMap.get(media.ElectronicMediaId);
-                        System.debug('  Product ' + media.ProductId + ' has ContentKey: ' + contentKey);
-
-                        // Construct the image URL using CMS delivery pattern with ContentKey
-                        String imageUrl = baseUrl +
-                            '/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,width=330' +
-                            '/shop/sfsites/c/cms/delivery/media/' +
-                            contentKey +
-                            '?version=1.1&channelId=' + webstoreId +
-                            '&oid=' + orgId;
-
-                        productImageMap.put(media.ProductId, imageUrl);
-                        System.debug('  Constructed image URL for product ' + media.ProductId + ': ' + imageUrl);
-                    }
-                }
+                // Use existing helper that handles ProductMedia and ManagedContent via ConnectApi
+                productImageMap = ManagedContentHelper.getProductImageUrls(productIds, webstoreId);
+                System.debug('Retrieved image URLs for ' + productImageMap.size() + ' products');
             }
 
             // Get total count for pagination
