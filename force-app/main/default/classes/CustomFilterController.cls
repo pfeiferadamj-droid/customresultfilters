@@ -26,7 +26,7 @@ public with sharing class CustomFilterController {
 
     /**
      * Get Quick Turn category filters
-     * Includes: Product Code, Shape (custom field), Rush Ready (checkbox)
+     * Includes: Product Code, Shape, Profile, Panels, Structure, Visor, Rush Ready
      */
     private static List<FilterWrapper> getQuickTurnFilters() {
         List<FilterWrapper> filters = new List<FilterWrapper>();
@@ -39,13 +39,45 @@ public with sharing class CustomFilterController {
         productCodeFilter.values = new List<FilterValueWrapper>();
         filters.add(productCodeFilter);
 
-        // Shape Filter (Custom Field - assuming picklist)
+        // Shape Filter
         FilterWrapper shapeFilter = new FilterWrapper();
         shapeFilter.id = 'shape';
         shapeFilter.label = 'Shape';
         shapeFilter.fieldType = 'picklist';
         shapeFilter.values = getShapePicklistValues();
         filters.add(shapeFilter);
+
+        // Profile Filter
+        FilterWrapper profileFilter = new FilterWrapper();
+        profileFilter.id = 'profile';
+        profileFilter.label = 'Profile';
+        profileFilter.fieldType = 'picklist';
+        profileFilter.values = getProfilePicklistValues();
+        filters.add(profileFilter);
+
+        // Panels Filter
+        FilterWrapper panelsFilter = new FilterWrapper();
+        panelsFilter.id = 'panels';
+        panelsFilter.label = 'Panels';
+        panelsFilter.fieldType = 'picklist';
+        panelsFilter.values = getPanelsPicklistValues();
+        filters.add(panelsFilter);
+
+        // Structure Filter
+        FilterWrapper structureFilter = new FilterWrapper();
+        structureFilter.id = 'structure';
+        structureFilter.label = 'Structure';
+        structureFilter.fieldType = 'picklist';
+        structureFilter.values = getStructurePicklistValues();
+        filters.add(structureFilter);
+
+        // Visor Filter
+        FilterWrapper visorFilter = new FilterWrapper();
+        visorFilter.id = 'visor';
+        visorFilter.label = 'Visor';
+        visorFilter.fieldType = 'picklist';
+        visorFilter.values = getVisorPicklistValues();
+        filters.add(visorFilter);
 
         // Rush Ready Filter (Checkbox)
         FilterWrapper rushReadyFilter = new FilterWrapper();
@@ -85,14 +117,49 @@ public with sharing class CustomFilterController {
 
     /**
      * Get Shape picklist values
-     * NOTE: Update the Product2 object name and field API name based on your actual schema
      */
     private static List<FilterValueWrapper> getShapePicklistValues() {
+        return getPicklistValues(Product2.Shape__c.getDescribe(), 'Shape');
+    }
+
+    /**
+     * Get Profile picklist values
+     */
+    private static List<FilterValueWrapper> getProfilePicklistValues() {
+        return getPicklistValues(Product2.Profile__c.getDescribe(), 'Profile');
+    }
+
+    /**
+     * Get Panels picklist values
+     */
+    private static List<FilterValueWrapper> getPanelsPicklistValues() {
+        return getPicklistValues(Product2.Panels__c.getDescribe(), 'Panels');
+    }
+
+    /**
+     * Get Structure picklist values
+     */
+    private static List<FilterValueWrapper> getStructurePicklistValues() {
+        return getPicklistValues(Product2.Structure__c.getDescribe(), 'Structure');
+    }
+
+    /**
+     * Get Visor picklist values
+     */
+    private static List<FilterValueWrapper> getVisorPicklistValues() {
+        return getPicklistValues(Product2.Visor__c.getDescribe(), 'Visor');
+    }
+
+    /**
+     * Generic method to get picklist values from a field
+     * @param fieldResult The DescribeFieldResult for the picklist field
+     * @param fieldName The field name for error logging
+     * @return List of FilterValueWrapper objects
+     */
+    private static List<FilterValueWrapper> getPicklistValues(Schema.DescribeFieldResult fieldResult, String fieldName) {
         List<FilterValueWrapper> values = new List<FilterValueWrapper>();
 
         try {
-            // Get the picklist values from the Shape__c field on Product2
-            Schema.DescribeFieldResult fieldResult = Product2.Shape__c.getDescribe();
             List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
 
             for (Schema.PicklistEntry entry : picklistValues) {
@@ -105,12 +172,7 @@ public with sharing class CustomFilterController {
                 }
             }
         } catch (Exception e) {
-            System.debug('Error getting shape picklist values: ' + e.getMessage());
-            // Return sample values if field doesn't exist yet
-            values.add(createFilterValue('Round', 'Round', false));
-            values.add(createFilterValue('Square', 'Square', false));
-            values.add(createFilterValue('Rectangle', 'Rectangle', false));
-            values.add(createFilterValue('Oval', 'Oval', false));
+            System.debug('Error getting ' + fieldName + ' picklist values: ' + e.getMessage());
         }
 
         return values;
