@@ -1281,14 +1281,17 @@ handleShowProduct(event) {
 
     /**
      * Map filter IDs to actual Salesforce field API names
-     * TODO: Update these field names to match your actual Salesforce schema
      */
     mapFilterIdToFieldName(filterId) {
         const fieldMapping = {
             'productCode': 'ProductCode',      // Standard field
-            'shape': 'Shape__c',               // TODO: Replace with actual Shape field API name
-            'rushReady': 'Rush_Ready__c',      // TODO: Replace with actual Rush Ready field API name
-            'endUser': 'End_User__c'           // TODO: Replace with actual End User field API name
+            'shape': 'Shape__c',               // Custom picklist field
+            'profile': 'Profile__c',           // Custom picklist field
+            'panels': 'Panels__c',             // Custom picklist field
+            'structure': 'Structure__c',       // Custom picklist field
+            'visor': 'Visor__c',               // Custom picklist field
+            'rushReady': 'Rush_Ready__c',      // Custom boolean field
+            'endUser': 'End_User__c'           // Custom lookup field
         };
 
         return fieldMapping[filterId] || filterId;
@@ -1301,6 +1304,10 @@ handleShowProduct(event) {
         const typeMapping = {
             'productCode': 'Standard',          // Standard Salesforce field
             'shape': 'Custom',                  // Custom field (picklist)
+            'profile': 'Custom',                // Custom field (picklist)
+            'panels': 'Custom',                 // Custom field (picklist)
+            'structure': 'Custom',              // Custom field (picklist)
+            'visor': 'Custom',                  // Custom field (picklist)
             'rushReady': 'ProductAttribute',    // Boolean field - use ProductAttribute
             'endUser': 'Custom'                 // Custom field (lookup)
         };
