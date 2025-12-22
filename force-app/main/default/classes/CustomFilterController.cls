@@ -162,6 +162,8 @@ public with sharing class CustomFilterController {
         try {
             List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
 
+            System.debug('Getting picklist values for ' + fieldName + ': Found ' + picklistValues.size() + ' total values');
+
             for (Schema.PicklistEntry entry : picklistValues) {
                 if (entry.isActive()) {
                     FilterValueWrapper value = new FilterValueWrapper();
@@ -171,8 +173,12 @@ public with sharing class CustomFilterController {
                     values.add(value);
                 }
             }
+
+            System.debug('  Active values for ' + fieldName + ': ' + values.size());
         } catch (Exception e) {
-            System.debug('Error getting ' + fieldName + ' picklist values: ' + e.getMessage());
+            System.debug('ERROR getting ' + fieldName + ' picklist values: ' + e.getMessage());
+            System.debug('  Error type: ' + e.getTypeName());
+            System.debug('  Stack trace: ' + e.getStackTraceString());
         }
 
         return values;
