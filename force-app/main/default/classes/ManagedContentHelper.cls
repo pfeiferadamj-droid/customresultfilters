@@ -8,7 +8,7 @@ public without sharing class ManagedContentHelper {
 
         // Get ProductMedia -> ManagedContent mapping
         Map<Id, Id> productToManagedContentMap = new Map<Id, Id>();
-        List<String> managedContentIdStrings = new List<String>();
+        Set<Id> managedContentIds = new Set<Id>();
 
         for (ProductMedia pm : [
             SELECT ProductId, ElectronicMediaId
@@ -19,7 +19,7 @@ public without sharing class ManagedContentHelper {
         ]) {
             if (!productToManagedContentMap.containsKey(pm.ProductId)) {
                 productToManagedContentMap.put(pm.ProductId, pm.ElectronicMediaId);
-                managedContentIdStrings.add(pm.ElectronicMediaId);
+                managedContentIds.add(pm.ElectronicMediaId);
             }
         }
 
@@ -28,70 +28,45 @@ public without sharing class ManagedContentHelper {
             return productImageMap;
         }
 
-        System.debug('ManagedContent IDs: ' + managedContentIdStrings);
+        System.debug('ManagedContent IDs: ' + managedContentIds);
 
-        // Get the Network ID - query all networks and find the one named "Shop"
-        String networkId = null;
+        // Query ManagedContent to get ContentKeys (IDs are not the same as ContentKeys!)
+        Map<Id, String> contentKeyMap = new Map<Id, String>();
         try {
-            List<Network> networks = [
-                SELECT Id, Name
-                FROM Network
-                WHERE Name = 'Shop'
-                LIMIT 1
+            List<ManagedContent> managedContentList = [
+                SELECT Id, ContentKey
+                FROM ManagedContent
+                WHERE Id IN :managedContentIds
             ];
 
-            if (!networks.isEmpty()) {
-                networkId = networks[0].Id;
-                System.debug('Found NetworkId for Shop: ' + networkId);
-            }
-        } catch (Exception e) {
-            System.debug('Error getting NetworkId: ' + e.getMessage());
-        }
+            System.debug('Found ' + managedContentList.size() + ' ManagedContent records');
 
-        // If we don't have a NetworkId, we can't proceed with ConnectApi
-        if (networkId == null) {
-            System.debug('No NetworkId found - cannot retrieve ManagedContent');
-            return productImageMap;
-        }
-
-        // Use ConnectApi to get ManagedContent
-        try {
-            ConnectApi.ManagedContentVersionCollection contentCollection =
-                ConnectApi.ManagedContent.getManagedContentByContentKeys(
-                    networkId,
-                    managedContentIdStrings,
-                    0,
-                    managedContentIdStrings.size(),
-                    null,
-                    null,
-                    false
-                );
-
-            System.debug('ConnectApi returned ' + contentCollection.items.size() + ' items');
-
-            // Build map of ManagedContent ID to ContentKey
-            Map<String, String> idToKeyMap = new Map<String, String>();
-            for (ConnectApi.ManagedContentVersion item : contentCollection.items) {
-                System.debug('Content: ' + item.contentKey + ', managedContentId: ' + item.managedContentId);
-                idToKeyMap.put(item.managedContentId, item.contentKey);
-            }
-
-            // Build image URLs
-            for (Id productId : productToManagedContentMap.keySet()) {
-                Id managedContentId = productToManagedContentMap.get(productId);
-                String contentKey = idToKeyMap.get(String.valueOf(managedContentId));
-
-                if (String.isNotBlank(contentKey)) {
-                    String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
-                                     '?channelId=' + webstoreId + '&oid=' + orgId;
-                    productImageMap.put(productId, imageUrl);
-                    System.debug('Built URL for ' + productId + ': ' + imageUrl);
+            for (ManagedContent mc : managedContentList) {
+                if (String.isNotBlank(mc.ContentKey)) {
+                    contentKeyMap.put(mc.Id, mc.ContentKey);
+                    System.debug('  ManagedContent ' + mc.Id + ' -> ContentKey: ' + mc.ContentKey);
                 }
             }
 
         } catch (Exception e) {
-            System.debug('Error using ConnectApi: ' + e.getMessage());
+            System.debug('Error querying ManagedContent: ' + e.getMessage());
             System.debug('Stack trace: ' + e.getStackTraceString());
+            return productImageMap;
+        }
+
+        // Build image URLs using ContentKeys
+        for (Id productId : productToManagedContentMap.keySet()) {
+            Id managedContentId = productToManagedContentMap.get(productId);
+            String contentKey = contentKeyMap.get(managedContentId);
+
+            if (String.isNotBlank(contentKey)) {
+                String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
+                                 '?channelId=' + webstoreId + '&oid=' + orgId;
+                productImageMap.put(productId, imageUrl);
+                System.debug('Built URL for ' + productId + ': ' + imageUrl);
+            } else {
+                System.debug('No ContentKey found for ManagedContent ' + managedContentId);
+            }
         }
 
         return productImageMap;
