@@ -202,6 +202,235 @@ public with sharing class CustomProductQueryController {
     }
 
     /**
+     * Query products by Quick Turn filters using direct SOQL
+     * This bypasses Commerce Search API which cannot handle text field refinements
+     *
+     * @param categoryId The category ID to filter by
+     * @param profileValues List of Profile values to filter by
+     * @param panelsValues List of Panels values to filter by
+     * @param structureValues List of Structure values to filter by
+     * @param visorValues List of Visor values to filter by
+     * @param shapeValues List of Shape values to filter by
+     * @param productCode Product code search term (partial match)
+     * @param rushReadyOnly True to only show rush ready products
+     * @param pageNumber Current page number (1-indexed)
+     * @param pageSize Number of products per page
+     * @param restrictToParents True to only return parent products
+     * @param webstoreId The webstore ID for constructing image URLs
+     * @return ProductQueryResult containing products and pagination info
+     */
+    @AuraEnabled
+    public static ProductQueryResult getProductsByQuickTurnFilters(
+        String categoryId,
+        List<String> profileValues,
+        List<String> panelsValues,
+        List<String> structureValues,
+        List<String> visorValues,
+        List<String> shapeValues,
+        String productCode,
+        Boolean rushReadyOnly,
+        Integer pageNumber,
+        Integer pageSize,
+        Boolean restrictToParents,
+        String webstoreId
+    ) {
+        try {
+            System.debug('CustomProductQueryController.getProductsByQuickTurnFilters called');
+            System.debug('  categoryId: ' + categoryId);
+            System.debug('  profileValues: ' + profileValues);
+            System.debug('  panelsValues: ' + panelsValues);
+            System.debug('  structureValues: ' + structureValues);
+            System.debug('  visorValues: ' + visorValues);
+            System.debug('  shapeValues: ' + shapeValues);
+            System.debug('  productCode: ' + productCode);
+            System.debug('  rushReadyOnly: ' + rushReadyOnly);
+            System.debug('  pageNumber: ' + pageNumber);
+            System.debug('  pageSize: ' + pageSize);
+            System.debug('  restrictToParents: ' + restrictToParents);
+
+            ProductQueryResult result = new ProductQueryResult();
+
+            // Set up pagination
+            Integer page = pageNumber != null ? pageNumber : 1;
+            Integer size = pageSize != null ? pageSize : 24;
+            Integer offset = (page - 1) * size;
+
+            // Build dynamic query
+            String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
+                          'Shape__c, Profile__c, Panels__c, Structure__c, Visor__c, ' +
+                          'Rush_Ready__c, IsActive, Is_Parent__c ' +
+                          'FROM Product2 ' +
+                          'WHERE IsActive = true ';
+
+            // Add filter conditions
+            if (profileValues != null && !profileValues.isEmpty()) {
+                query += 'AND Profile__c IN :profileValues ';
+            }
+
+            if (panelsValues != null && !panelsValues.isEmpty()) {
+                query += 'AND Panels__c IN :panelsValues ';
+            }
+
+            if (structureValues != null && !structureValues.isEmpty()) {
+                query += 'AND Structure__c IN :structureValues ';
+            }
+
+            if (visorValues != null && !visorValues.isEmpty()) {
+                query += 'AND Visor__c IN :visorValues ';
+            }
+
+            if (shapeValues != null && !shapeValues.isEmpty()) {
+                query += 'AND Shape__c IN :shapeValues ';
+            }
+
+            if (String.isNotBlank(productCode)) {
+                String productCodePattern = '%' + productCode + '%';
+                query += 'AND ProductCode LIKE :productCodePattern ';
+            }
+
+            if (rushReadyOnly == true) {
+                query += 'AND Rush_Ready__c = true ';
+            }
+
+            if (restrictToParents != null && restrictToParents) {
+                query += 'AND Is_Parent__c = \'Yes\' ';
+                System.debug('  Adding parent restriction: Is_Parent__c = Yes');
+            }
+
+            query += 'ORDER BY Name ASC ' +
+                    'LIMIT :size OFFSET :offset';
+
+            System.debug('Executing query: ' + query);
+            List<Product2> products = Database.query(query);
+            System.debug('Found ' + products.size() + ' products');
+
+            // Get product images using existing ManagedContentHelper
+            Map<Id, String> productImageMap = new Map<Id, String>();
+            if (!products.isEmpty()) {
+                List<Id> productIds = new List<Id>();
+                for (Product2 p : products) {
+                    productIds.add(p.Id);
+                }
+
+                System.debug('About to call ManagedContentHelper.getProductImageUrls');
+                System.debug('  Product IDs: ' + productIds);
+                System.debug('  Webstore ID: ' + webstoreId);
+
+                productImageMap = ManagedContentHelper.getProductImageUrls(productIds, webstoreId);
+
+                System.debug('ManagedContentHelper returned: ' + productImageMap.size() + ' image URLs');
+                System.debug('  Image map: ' + productImageMap);
+            } else {
+                System.debug('No products found - skipping image retrieval');
+            }
+
+            // Get total count for pagination
+            String countQuery = 'SELECT COUNT() FROM Product2 ' +
+                               'WHERE IsActive = true ';
+
+            if (profileValues != null && !profileValues.isEmpty()) {
+                countQuery += 'AND Profile__c IN :profileValues ';
+            }
+
+            if (panelsValues != null && !panelsValues.isEmpty()) {
+                countQuery += 'AND Panels__c IN :panelsValues ';
+            }
+
+            if (structureValues != null && !structureValues.isEmpty()) {
+                countQuery += 'AND Structure__c IN :structureValues ';
+            }
+
+            if (visorValues != null && !visorValues.isEmpty()) {
+                countQuery += 'AND Visor__c IN :visorValues ';
+            }
+
+            if (shapeValues != null && !shapeValues.isEmpty()) {
+                countQuery += 'AND Shape__c IN :shapeValues ';
+            }
+
+            if (String.isNotBlank(productCode)) {
+                String productCodePattern = '%' + productCode + '%';
+                countQuery += 'AND ProductCode LIKE :productCodePattern ';
+            }
+
+            if (rushReadyOnly == true) {
+                countQuery += 'AND Rush_Ready__c = true ';
+            }
+
+            if (restrictToParents != null && restrictToParents) {
+                countQuery += 'AND Is_Parent__c = \'Yes\' ';
+            }
+
+            Integer totalCount = Database.countQuery(countQuery);
+            System.debug('Total count: ' + totalCount);
+
+            // Query pricebook entries for products
+            Map<Id, List<PricebookEntryInfo>> productPriceMap = new Map<Id, List<PricebookEntryInfo>>();
+            if (!products.isEmpty()) {
+                Set<Id> productIds = new Set<Id>();
+                for (Product2 p : products) {
+                    productIds.add(p.Id);
+                }
+
+                List<PricebookEntry> priceEntries = [
+                    SELECT Id, Product2Id, Pricebook2Id, UnitPrice, IsActive
+                    FROM PricebookEntry
+                    WHERE Product2Id IN :productIds
+                    AND IsActive = true
+                    ORDER BY Product2Id, Pricebook2Id
+                ];
+
+                System.debug('Found ' + priceEntries.size() + ' pricebook entries');
+
+                // Group by product
+                for (PricebookEntry pbe : priceEntries) {
+                    if (!productPriceMap.containsKey(pbe.Product2Id)) {
+                        productPriceMap.put(pbe.Product2Id, new List<PricebookEntryInfo>());
+                    }
+
+                    PricebookEntryInfo priceInfo = new PricebookEntryInfo();
+                    priceInfo.pricebookId = pbe.Pricebook2Id;
+                    priceInfo.unitPrice = pbe.UnitPrice;
+                    productPriceMap.get(pbe.Product2Id).add(priceInfo);
+                }
+            }
+
+            // Convert products to wrapper objects
+            List<ProductWrapper> wrappedProducts = new List<ProductWrapper>();
+            for (Product2 p : products) {
+                ProductWrapper pw = new ProductWrapper();
+                pw.id = p.Id;
+                pw.name = p.Name;
+                pw.productCode = p.ProductCode;
+                pw.description = p.Description;
+                pw.sku = p.StockKeepingUnit;
+                pw.shapeValue = p.Shape__c;
+                pw.rushReady = p.Rush_Ready__c;
+                pw.imageUrl = productImageMap.get(p.Id);
+                pw.imageAltText = p.Name;
+                wrappedProducts.add(pw);
+            }
+
+            result.products = wrappedProducts;
+            result.total = totalCount;
+            result.pageNumber = page;
+            result.pageSize = size;
+            result.pricebookEntries = productPriceMap;
+
+            System.debug('Returning result with ' + result.products.size() + ' products');
+            System.debug('  With pricebook entries for ' + result.pricebookEntries.size() + ' products');
+
+            return result;
+
+        } catch (Exception e) {
+            System.debug('ERROR in getProductsByQuickTurnFilters: ' + e.getMessage());
+            System.debug('ERROR Type: ' + e.getTypeName());
+            System.debug('ERROR Stack Trace: ' + e.getStackTraceString());
+            throw new AuraHandledException('Error querying products by Quick Turn filters: ' + e.getMessage());
+        }
+    }
+
+    /**
      * Wrapper class for product query results
      */
     public class ProductQueryResult {
