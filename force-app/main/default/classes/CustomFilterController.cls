@@ -116,67 +116,86 @@ public with sharing class CustomFilterController {
     }
 
     /**
-     * Get Shape picklist values
+     * Get Shape values from products (text field)
      */
     private static List<FilterValueWrapper> getShapePicklistValues() {
-        return getPicklistValues(Product2.Shape__c.getDescribe(), 'Shape');
+        return getDistinctTextFieldValues('Shape__c', 'Shape');
     }
 
     /**
-     * Get Profile picklist values
+     * Get Profile values from products (text field)
      */
     private static List<FilterValueWrapper> getProfilePicklistValues() {
-        return getPicklistValues(Product2.Profile__c.getDescribe(), 'Profile');
+        return getDistinctTextFieldValues('Profile__c', 'Profile');
     }
 
     /**
-     * Get Panels picklist values
+     * Get Panels values from products (text field)
      */
     private static List<FilterValueWrapper> getPanelsPicklistValues() {
-        return getPicklistValues(Product2.Panels__c.getDescribe(), 'Panels');
+        return getDistinctTextFieldValues('Panels__c', 'Panels');
     }
 
     /**
-     * Get Structure picklist values
+     * Get Structure values from products (text field)
      */
     private static List<FilterValueWrapper> getStructurePicklistValues() {
-        return getPicklistValues(Product2.Structure__c.getDescribe(), 'Structure');
+        return getDistinctTextFieldValues('Structure__c', 'Structure');
     }
 
     /**
-     * Get Visor picklist values
+     * Get Visor values from products (text field)
      */
     private static List<FilterValueWrapper> getVisorPicklistValues() {
-        return getPicklistValues(Product2.Visor__c.getDescribe(), 'Visor');
+        return getDistinctTextFieldValues('Visor__c', 'Visor');
     }
 
     /**
-     * Generic method to get picklist values from a field
-     * @param fieldResult The DescribeFieldResult for the picklist field
-     * @param fieldName The field name for error logging
-     * @return List of FilterValueWrapper objects
+     * Generic method to get distinct values from a text field
+     * Queries all active products and collects unique values
+     * @param fieldApiName The API name of the field (e.g., 'Profile__c')
+     * @param fieldLabel The display label for logging
+     * @return List of FilterValueWrapper objects with distinct values
      */
-    private static List<FilterValueWrapper> getPicklistValues(Schema.DescribeFieldResult fieldResult, String fieldName) {
+    private static List<FilterValueWrapper> getDistinctTextFieldValues(String fieldApiName, String fieldLabel) {
         List<FilterValueWrapper> values = new List<FilterValueWrapper>();
+        Set<String> distinctValues = new Set<String>();
 
         try {
-            List<Schema.PicklistEntry> picklistValues = fieldResult.getPicklistValues();
+            // Build dynamic SOQL query to get distinct values
+            String query = 'SELECT ' + fieldApiName + ' FROM Product2 ' +
+                          'WHERE IsActive = true AND ' + fieldApiName + ' != null ' +
+                          'LIMIT 2000';
 
-            System.debug('Getting picklist values for ' + fieldName + ': Found ' + picklistValues.size() + ' total values');
+            System.debug('Querying distinct values for ' + fieldLabel + ': ' + query);
 
-            for (Schema.PicklistEntry entry : picklistValues) {
-                if (entry.isActive()) {
-                    FilterValueWrapper value = new FilterValueWrapper();
-                    value.label = entry.getLabel();
-                    value.value = entry.getValue();
-                    value.checked = false;
-                    values.add(value);
+            List<Product2> products = Database.query(query);
+            System.debug('  Found ' + products.size() + ' active products with ' + fieldLabel);
+
+            // Collect distinct values
+            for (Product2 p : products) {
+                String fieldValue = (String)p.get(fieldApiName);
+                if (String.isNotBlank(fieldValue) && !distinctValues.contains(fieldValue)) {
+                    distinctValues.add(fieldValue);
                 }
             }
 
-            System.debug('  Active values for ' + fieldName + ': ' + values.size());
+            System.debug('  Found ' + distinctValues.size() + ' distinct values for ' + fieldLabel);
+
+            // Convert to filter values and sort
+            List<String> sortedValues = new List<String>(distinctValues);
+            sortedValues.sort();
+
+            for (String val : sortedValues) {
+                FilterValueWrapper filterValue = new FilterValueWrapper();
+                filterValue.label = val;
+                filterValue.value = val;
+                filterValue.checked = false;
+                values.add(filterValue);
+            }
+
         } catch (Exception e) {
-            System.debug('ERROR getting ' + fieldName + ' picklist values: ' + e.getMessage());
+            System.debug('ERROR getting ' + fieldLabel + ' values: ' + e.getMessage());
             System.debug('  Error type: ' + e.getTypeName());
             System.debug('  Stack trace: ' + e.getStackTraceString());
         }
