@@ -100,9 +100,17 @@ public with sharing class CustomProductQueryController {
                     productIds.add(p.Id);
                 }
 
+                System.debug('About to call ManagedContentHelper.getProductImageUrls');
+                System.debug('  Product IDs: ' + productIds);
+                System.debug('  Webstore ID: ' + webstoreId);
+
                 // Use existing helper that handles ProductMedia and ManagedContent via ConnectApi
                 productImageMap = ManagedContentHelper.getProductImageUrls(productIds, webstoreId);
-                System.debug('Retrieved image URLs for ' + productImageMap.size() + ' products');
+
+                System.debug('ManagedContentHelper returned: ' + productImageMap.size() + ' image URLs');
+                System.debug('  Image map: ' + productImageMap);
+            } else {
+                System.debug('No products found - skipping image retrieval');
             }
 
             // Get total count for pagination
