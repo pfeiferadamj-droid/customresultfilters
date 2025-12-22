@@ -92,7 +92,7 @@ public with sharing class CustomProductQueryController {
             System.debug('Found ' + products.size() + ' products');
 
             // Get product images - query ProductMedia separately
-            // Get product images using existing ManagedContentHelper
+            // Get product images using ProductImageHelper
             Map<Id, String> productImageMap = new Map<Id, String>();
             if (!products.isEmpty()) {
                 List<Id> productIds = new List<Id>();
@@ -100,14 +100,14 @@ public with sharing class CustomProductQueryController {
                     productIds.add(p.Id);
                 }
 
-                System.debug('About to call ManagedContentHelper.getProductImageUrls');
+                System.debug('About to call ProductImageHelper.getProductImageUrls');
                 System.debug('  Product IDs: ' + productIds);
                 System.debug('  Webstore ID: ' + webstoreId);
 
-                // Use existing helper that handles ProductMedia and ManagedContent via ConnectApi
-                productImageMap = ManagedContentHelper.getProductImageUrls(productIds, webstoreId);
+                // Use ProductImageHelper that queries ManagedContent.ContentKey directly
+                productImageMap = ProductImageHelper.getProductImageUrls(productIds, webstoreId);
 
-                System.debug('ManagedContentHelper returned: ' + productImageMap.size() + ' image URLs');
+                System.debug('ProductImageHelper returned: ' + productImageMap.size() + ' image URLs');
                 System.debug('  Image map: ' + productImageMap);
             } else {
                 System.debug('No products found - skipping image retrieval');
@@ -304,7 +304,7 @@ public with sharing class CustomProductQueryController {
             List<Product2> products = Database.query(query);
             System.debug('Found ' + products.size() + ' products');
 
-            // Get product images using existing ManagedContentHelper
+            // Get product images using ProductImageHelper
             Map<Id, String> productImageMap = new Map<Id, String>();
             if (!products.isEmpty()) {
                 List<Id> productIds = new List<Id>();
@@ -312,13 +312,13 @@ public with sharing class CustomProductQueryController {
                     productIds.add(p.Id);
                 }
 
-                System.debug('About to call ManagedContentHelper.getProductImageUrls');
+                System.debug('About to call ProductImageHelper.getProductImageUrls');
                 System.debug('  Product IDs: ' + productIds);
                 System.debug('  Webstore ID: ' + webstoreId);
 
-                productImageMap = ManagedContentHelper.getProductImageUrls(productIds, webstoreId);
+                productImageMap = ProductImageHelper.getProductImageUrls(productIds, webstoreId);
 
-                System.debug('ManagedContentHelper returned: ' + productImageMap.size() + ' image URLs');
+                System.debug('ProductImageHelper returned: ' + productImageMap.size() + ' image URLs');
                 System.debug('  Image map: ' + productImageMap);
             } else {
                 System.debug('No products found - skipping image retrieval');
