@@ -4,6 +4,7 @@ import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService
 import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 import getCategoryProducts from '@salesforce/apex/CategoryProductController.getCategoryProducts';
 import getProductsByEndUser from '@salesforce/apex/CustomProductQueryController.getProductsByEndUser';
+import getProductsByQuickTurnFilters from '@salesforce/apex/CustomProductQueryController.getProductsByQuickTurnFilters';
 
 // Field used to filter to parents only.
 import FIELD_ISPARENT from '@salesforce/schema/Product2.Is_Parent__c';
@@ -433,14 +434,28 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.isLoadingProducts = true;
         this.error = null;
         try {
-            // Check if filtering by End User (lookup field)
+            // Check if filtering by End User (lookup field - My Products category)
             const endUserFilterValues = this.currentFilters['endUser'];
             const hasEndUserFilter = endUserFilterValues && endUserFilterValues.length > 0;
+
+            // Check if using Quick Turn text field filters (profile, panels, structure, visor, shape, productCode, rushReady)
+            const hasQuickTurnFilters =
+                (this.currentFilters['profile'] && this.currentFilters['profile'].length > 0) ||
+                (this.currentFilters['panels'] && this.currentFilters['panels'].length > 0) ||
+                (this.currentFilters['structure'] && this.currentFilters['structure'].length > 0) ||
+                (this.currentFilters['visor'] && this.currentFilters['visor'].length > 0) ||
+                (this.currentFilters['shape'] && this.currentFilters['shape'].length > 0) ||
+                (this.currentFilters['productCode'] && this.currentFilters['productCode'].length > 0) ||
+                (this.currentFilters['rushReady'] && this.currentFilters['rushReady'].length > 0);
 
             if (hasEndUserFilter) {
                 // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
                 console.log('Using custom SOQL query for End User filter:', endUserFilterValues);
                 await this.fetchProductsByEndUser(endUserFilterValues);
+            } else if (hasQuickTurnFilters) {
+                // Use custom SOQL query for Quick Turn text field filters
+                console.log('Using custom SOQL query for Quick Turn filters');
+                await this.fetchProductsByQuickTurnFilters();
             } else {
                 // Use standard Commerce Search API for other filters
                 await this.fetchProductsViaCommerceSearch();
@@ -586,6 +601,97 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                     } : null,
                     // Add empty prices structure - will be populated by selectPriceForPricebook
                     // or default to null if no pricebook entries exist
+                    prices: {
+                        currencyIsoCode: 'USD'
+                    }
+                })),
+                total: result.total
+            }
+        };
+
+        // Set pricebook entries from the result
+        this.pricebookEntries = result.pricebookEntries || {};
+
+        // Calculate pagination info
+        this.totalProducts = result.total;
+        this.totalPages = Math.ceil(result.total / this.productsPerPage) || 1;
+
+        console.log('Converted to search results format');
+        console.log('Products found:', this.searchResults.productsPage.products.length);
+        console.log('Total products:', this.totalProducts);
+        console.log('Total pages:', this.totalPages);
+    }
+
+    /**
+     * Fetch products using custom SOQL query (for Quick Turn text field filters)
+     */
+    async fetchProductsByQuickTurnFilters() {
+        const profileValues = this.currentFilters['profile'] || [];
+        const panelsValues = this.currentFilters['panels'] || [];
+        const structureValues = this.currentFilters['structure'] || [];
+        const visorValues = this.currentFilters['visor'] || [];
+        const shapeValues = this.currentFilters['shape'] || [];
+        const productCodeValues = this.currentFilters['productCode'] || [];
+        const rushReadyValues = this.currentFilters['rushReady'] || [];
+
+        // Product code is a text search, get the first value
+        const productCode = productCodeValues.length > 0 ? productCodeValues[0] : null;
+
+        // Rush ready is a boolean checkbox
+        const rushReadyOnly = rushReadyValues.length > 0 && rushReadyValues[0] === 'true';
+
+        console.log('Fetching products by Quick Turn filters using SOQL:', {
+            categoryId: this.resolvedCategoryId,
+            profileValues,
+            panelsValues,
+            structureValues,
+            visorValues,
+            shapeValues,
+            productCode,
+            rushReadyOnly,
+            pageNumber: this.currentPage,
+            pageSize: this.productsPerPage,
+            restrictToParents: this.restrictToParents
+        });
+
+        const result = await getProductsByQuickTurnFilters({
+            categoryId: this.resolvedCategoryId,
+            profileValues: profileValues.length > 0 ? profileValues : null,
+            panelsValues: panelsValues.length > 0 ? panelsValues : null,
+            structureValues: structureValues.length > 0 ? structureValues : null,
+            visorValues: visorValues.length > 0 ? visorValues : null,
+            shapeValues: shapeValues.length > 0 ? shapeValues : null,
+            productCode: productCode,
+            rushReadyOnly: rushReadyOnly,
+            pageNumber: this.currentPage,
+            pageSize: this.productsPerPage,
+            restrictToParents: this.restrictToParents,
+            webstoreId: this.webstoreId
+        });
+
+        console.log('SOQL query result:', result);
+
+        // Convert custom result format to match Commerce Search format
+        this.searchResults = {
+            productsPage: {
+                products: result.products.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    fields: {
+                        Name: { value: p.name },
+                        ProductCode: { value: p.productCode },
+                        StockKeepingUnit: { value: p.sku },
+                        Description: { value: p.description },
+                        Shape__c: { value: p.shapeValue },
+                        Rush_Ready__c: { value: p.rushReady }
+                    },
+                    // Include product image if available
+                    defaultImage: p.imageUrl ? {
+                        url: p.imageUrl,
+                        alternateText: p.imageAltText || p.name,
+                        title: p.name
+                    } : null,
+                    // Add prices structure
                     prices: {
                         currencyIsoCode: 'USD'
                     }
@@ -1261,6 +1367,13 @@ handleShowProduct(event) {
             // We'll handle End User filtering via direct SOQL query instead
             if (filterId === 'endUser') {
                 console.log('customCategoryProductGrid: Skipping endUser filter (lookup field not supported in refinements)');
+                continue;
+            }
+
+            // Skip Quick Turn text field filters - handled via SOQL query instead
+            const quickTurnFilters = ['profile', 'panels', 'structure', 'visor', 'shape', 'productCode', 'rushReady'];
+            if (quickTurnFilters.includes(filterId)) {
+                console.log('customCategoryProductGrid: Skipping ' + filterId + ' filter (text field not supported in Commerce Search refinements)');
                 continue;
             }
 
