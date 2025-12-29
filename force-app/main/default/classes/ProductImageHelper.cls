@@ -71,11 +71,12 @@ public without sharing class ProductImageHelper {
             // It could be ContentVersion, ManagedContent, or ManagedContentVariant
 
             // Try 1: Query ContentVersion (standard Salesforce file version)
-            List<ContentVersion> contentVersions = [
-                SELECT Id, ContentDocumentId, FileExtension
-                FROM ContentVersion
-                WHERE Id IN :managedContentVersionIds
-            ];
+            // Use Database.query with SYSTEM_MODE to bypass object permissions
+            String cvQuery = 'SELECT Id, ContentDocumentId, FileExtension FROM ContentVersion WHERE Id IN :managedContentVersionIds';
+            List<ContentVersion> contentVersions = (List<ContentVersion>) Database.query(
+                cvQuery,
+                AccessLevel.SYSTEM_MODE
+            );
 
             System.debug('ProductImageHelper: Found ' + contentVersions.size() + ' ContentVersion records');
 
@@ -91,12 +92,13 @@ public without sharing class ProductImageHelper {
                 }
             } else {
                 // Try 2: Query ManagedContentVariant
+                // Use Database.query with SYSTEM_MODE to bypass object permissions
                 System.debug('ProductImageHelper: No ContentVersion records found, trying ManagedContentVariant...');
-                List<ManagedContentVariant> variantList = [
-                    SELECT Id, ManagedContentId
-                    FROM ManagedContentVariant
-                    WHERE Id IN :managedContentVersionIds
-                ];
+                String mcvQuery = 'SELECT Id, ManagedContentId FROM ManagedContentVariant WHERE Id IN :managedContentVersionIds';
+                List<ManagedContentVariant> variantList = (List<ManagedContentVariant>) Database.query(
+                    mcvQuery,
+                    AccessLevel.SYSTEM_MODE
+                );
 
                 System.debug('ProductImageHelper: Found ' + variantList.size() + ' ManagedContentVariant records');
 
@@ -111,11 +113,12 @@ public without sharing class ProductImageHelper {
                     }
 
                     // Query ManagedContent for ContentKeys
-                    List<ManagedContent> managedContentList = [
-                        SELECT Id, ContentKey
-                        FROM ManagedContent
-                        WHERE Id IN :managedContentIds
-                    ];
+                    // Use Database.query with SYSTEM_MODE to bypass object permissions
+                    String mcQuery2 = 'SELECT Id, ContentKey FROM ManagedContent WHERE Id IN :managedContentIds';
+                    List<ManagedContent> managedContentList = (List<ManagedContent>) Database.query(
+                        mcQuery2,
+                        AccessLevel.SYSTEM_MODE
+                    );
 
                     Map<Id, String> mcContentKeyMap = new Map<Id, String>();
                     for (ManagedContent mc : managedContentList) {
