@@ -19,7 +19,8 @@ public without sharing class ManagedContentHelper {
         ]) {
             if (!productToManagedContentMap.containsKey(pm.ProductId)) {
                 productToManagedContentMap.put(pm.ProductId, pm.ElectronicMediaId);
-                managedContentIdStrings.add(pm.ElectronicMediaId);
+                // Explicitly convert Id to String to avoid truncation
+                managedContentIdStrings.add(String.valueOf(pm.ElectronicMediaId));
             }
         }
 
@@ -69,6 +70,16 @@ public without sharing class ManagedContentHelper {
                 );
 
             System.debug('ConnectApi returned ' + contentCollection.items.size() + ' items');
+
+            if (contentCollection.items.isEmpty()) {
+                System.debug('WARNING: ConnectAPI returned 0 items for ManagedContent IDs: ' + managedContentIdStrings);
+                System.debug('This usually means:');
+                System.debug('  1. ManagedContent is not published to the community/channel');
+                System.debug('  2. ManagedContent is in a ContentSpace not associated with this community');
+                System.debug('  3. Current user lacks permission to access this content via ConnectAPI');
+                System.debug('  4. ElectronicMediaId field contains an ID that is not actually ManagedContent');
+                System.debug('Consider adding a custom ContentKey__c field to ProductMedia to store the key directly.');
+            }
 
             // Build map of ManagedContent ID to ContentKey
             Map<String, String> idToKeyMap = new Map<String, String>();
