@@ -54,30 +54,28 @@ public without sharing class ManagedContentHelper {
             return productImageMap;
         }
 
-        // Use ConnectApi to get ManagedContent by IDs (not ContentKeys)
+        // Use ConnectApi to get ManagedContent by IDs
         try {
-            // Build map of ManagedContent ID to ContentKey by calling ConnectAPI for each ID
+            // Call ConnectAPI with the list of ManagedContent IDs
+            ConnectApi.ManagedContentVersionCollection contentCollection =
+                ConnectApi.ManagedContent.getManagedContentByIds(
+                    networkId,
+                    managedContentIdStrings,
+                    0,
+                    managedContentIdStrings.size(),
+                    null,
+                    null,
+                    false
+                );
+
+            System.debug('ConnectApi returned ' + contentCollection.items.size() + ' items');
+
+            // Build map of ManagedContent ID to ContentKey
             Map<String, String> idToKeyMap = new Map<String, String>();
-
-            for (String managedContentId : managedContentIdStrings) {
-                try {
-                    ConnectApi.ManagedContentVersion contentVersion =
-                        ConnectApi.ManagedContent.getManagedContentByVersion(
-                            networkId,
-                            managedContentId,
-                            0
-                        );
-
-                    if (contentVersion != null && String.isNotBlank(contentVersion.contentKey)) {
-                        idToKeyMap.put(contentVersion.managedContentId, contentVersion.contentKey);
-                        System.debug('Retrieved ContentKey for ' + managedContentId + ': ' + contentVersion.contentKey);
-                    }
-                } catch (Exception innerEx) {
-                    System.debug('Error retrieving ManagedContent ' + managedContentId + ': ' + innerEx.getMessage());
-                }
+            for (ConnectApi.ManagedContentVersion item : contentCollection.items) {
+                System.debug('Content: ' + item.contentKey + ', managedContentId: ' + item.managedContentId);
+                idToKeyMap.put(item.managedContentId, item.contentKey);
             }
-
-            System.debug('ConnectApi returned ' + idToKeyMap.size() + ' ContentKeys');
 
             // Build image URLs
             for (Id productId : productToManagedContentMap.keySet()) {
