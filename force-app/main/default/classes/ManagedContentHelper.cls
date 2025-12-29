@@ -121,25 +121,32 @@ public without sharing class ManagedContentHelper {
                 System.debug('Attempting to query ManagedContent via ContentDocument relationship');
 
                 // Query ContentDocumentLink to find ManagedContent linked to these ContentDocuments
+                // Note: Cannot filter on LinkedEntity.Type in SOQL, must filter in Apex
                 List<ContentDocumentLink> cdLinks = [
                     SELECT ContentDocumentId, LinkedEntityId
                     FROM ContentDocumentLink
                     WHERE ContentDocumentId IN :contentDocumentIds
-                    AND LinkedEntity.Type = 'ManagedContent'
                 ];
 
-                System.debug('Found ' + cdLinks.size() + ' ContentDocumentLinks to ManagedContent');
+                System.debug('Found ' + cdLinks.size() + ' ContentDocumentLinks');
 
-                if (!cdLinks.isEmpty()) {
-                    // Get the ManagedContent IDs from the links
-                    Set<String> managedContentIdsFromCD = new Set<String>();
-                    Map<String, String> contentDocToManagedContentMap = new Map<String, String>();
+                // Get the ManagedContent IDs from the links
+                // Filter to only ManagedContent (ID prefix '20Y')
+                Set<String> managedContentIdsFromCD = new Set<String>();
+                Map<String, String> contentDocToManagedContentMap = new Map<String, String>();
 
-                    for (ContentDocumentLink cdl : cdLinks) {
-                        String mcId = String.valueOf(cdl.LinkedEntityId);
-                        managedContentIdsFromCD.add(mcId);
-                        contentDocToManagedContentMap.put(String.valueOf(cdl.ContentDocumentId), mcId);
+                for (ContentDocumentLink cdl : cdLinks) {
+                    String linkedEntityId = String.valueOf(cdl.LinkedEntityId);
+                    // ManagedContent IDs start with '20Y'
+                    if (linkedEntityId.startsWith('20Y')) {
+                        managedContentIdsFromCD.add(linkedEntityId);
+                        contentDocToManagedContentMap.put(String.valueOf(cdl.ContentDocumentId), linkedEntityId);
                     }
+                }
+
+                System.debug('Found ' + managedContentIdsFromCD.size() + ' links to ManagedContent (filtered by 20Y prefix)');
+
+                if (!managedContentIdsFromCD.isEmpty()) {
 
                     // Query ManagedContent for ContentKeys
                     List<ManagedContent> managedContents = [
