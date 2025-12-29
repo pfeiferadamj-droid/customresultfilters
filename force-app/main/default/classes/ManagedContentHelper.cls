@@ -31,8 +31,9 @@ public without sharing class ManagedContentHelper {
 
         System.debug('ManagedContent IDs: ' + managedContentIdStrings);
 
-        // Get the Network ID - query all networks and find the one named "Shop"
+        // Get the Network ID and Site ID
         String networkId = null;
+        String siteId = null;
         try {
             List<Network> networks = [
                 SELECT Id, Name
@@ -44,9 +45,22 @@ public without sharing class ManagedContentHelper {
             if (!networks.isEmpty()) {
                 networkId = networks[0].Id;
                 System.debug('Found NetworkId for Shop: ' + networkId);
+
+                // Get the Site ID associated with this Network for correct channelId
+                List<Site> sites = [
+                    SELECT Id, Name
+                    FROM Site
+                    WHERE NetworkId = :networkId
+                    LIMIT 1
+                ];
+
+                if (!sites.isEmpty()) {
+                    siteId = sites[0].Id;
+                    System.debug('Found Site ID: ' + siteId);
+                }
             }
         } catch (Exception e) {
-            System.debug('Error getting NetworkId: ' + e.getMessage());
+            System.debug('Error getting NetworkId/SiteId: ' + e.getMessage());
         }
 
         // If we don't have a NetworkId, we can't proceed with ConnectApi
@@ -54,6 +68,10 @@ public without sharing class ManagedContentHelper {
             System.debug('No NetworkId found - cannot retrieve ManagedContent');
             return productImageMap;
         }
+
+        // Use Site ID as channelId if available, otherwise fall back to webstoreId
+        String channelId = siteId != null ? siteId : webstoreId;
+        System.debug('Using channelId: ' + channelId + ' (Site ID: ' + siteId + ', Webstore ID: ' + webstoreId + ')');
 
         // Use ConnectApi to get ManagedContent by IDs
         try {
@@ -94,8 +112,9 @@ public without sharing class ManagedContentHelper {
                 String contentKey = idToKeyMap.get(String.valueOf(managedContentId));
 
                 if (String.isNotBlank(contentKey)) {
+                    // Use the same format as working Commerce Search URLs
                     String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
-                                     '?channelId=' + webstoreId + '&oid=' + orgId;
+                                     '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
                     productImageMap.put(productId, imageUrl);
                     System.debug('Built URL for ' + productId + ': ' + imageUrl);
                 }
