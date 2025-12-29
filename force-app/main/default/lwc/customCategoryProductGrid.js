@@ -438,7 +438,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             const endUserFilterValues = this.currentFilters['endUser'];
             const hasEndUserFilter = endUserFilterValues && endUserFilterValues.length > 0;
 
-            // Check if using Quick Turn text field filters (profile, panels, structure, visor, shape, productCode, rushReady)
+            // Check if using Quick Turn text field filters (profile, panels, structure, visor, shape, productCode, featuredPrograms, rushReady)
             const hasQuickTurnFilters =
                 (this.currentFilters['profile'] && this.currentFilters['profile'].length > 0) ||
                 (this.currentFilters['panels'] && this.currentFilters['panels'].length > 0) ||
@@ -446,6 +446,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 (this.currentFilters['visor'] && this.currentFilters['visor'].length > 0) ||
                 (this.currentFilters['shape'] && this.currentFilters['shape'].length > 0) ||
                 (this.currentFilters['productCode'] && this.currentFilters['productCode'].length > 0) ||
+                (this.currentFilters['featuredPrograms'] && this.currentFilters['featuredPrograms'].length > 0) ||
                 (this.currentFilters['rushReady'] && this.currentFilters['rushReady'].length > 0);
 
             if (hasEndUserFilter) {
@@ -632,6 +633,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         const visorValues = this.currentFilters['visor'] || [];
         const shapeValues = this.currentFilters['shape'] || [];
         const productCodeValues = this.currentFilters['productCode'] || [];
+        const featuredProgramsValues = this.currentFilters['featuredPrograms'] || [];
         const rushReadyValues = this.currentFilters['rushReady'] || [];
 
         // Product code is a text search, get the first value
@@ -648,6 +650,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             visorValues,
             shapeValues,
             productCode,
+            featuredProgramsValues,
             rushReadyOnly,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
@@ -662,6 +665,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             visorValues: visorValues.length > 0 ? visorValues : null,
             shapeValues: shapeValues.length > 0 ? shapeValues : null,
             productCode: productCode,
+            featuredPrograms: featuredProgramsValues.length > 0 ? featuredProgramsValues : null,
             rushReadyOnly: rushReadyOnly,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
@@ -1380,7 +1384,7 @@ handleShowProduct(event) {
             }
 
             // Skip Quick Turn text field filters - handled via SOQL query instead
-            const quickTurnFilters = ['profile', 'panels', 'structure', 'visor', 'shape', 'productCode', 'rushReady'];
+            const quickTurnFilters = ['profile', 'panels', 'structure', 'visor', 'shape', 'productCode', 'featuredPrograms', 'rushReady'];
             if (quickTurnFilters.includes(filterId)) {
                 console.log('customCategoryProductGrid: Skipping ' + filterId + ' filter (text field not supported in Commerce Search refinements)');
                 continue;

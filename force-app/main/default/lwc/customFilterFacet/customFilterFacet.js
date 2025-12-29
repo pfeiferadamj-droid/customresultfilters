@@ -236,6 +236,36 @@ export default class CustomFilterFacet extends LightningElement {
     }
 
     /**
+     * Handle key down event (for Enter key)
+     */
+    handleKeyDown(event) {
+        // Check if Enter key was pressed
+        if (event.key === 'Enter' || event.keyCode === 13) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            const value = event.target.value;
+            const filterId = this.filterId;
+
+            // Clear debounce timer if it exists
+            if (this._textInputDebounceTimer) {
+                clearTimeout(this._textInputDebounceTimer);
+            }
+
+            // Immediately trigger filter change on Enter
+            this.dispatchEvent(new CustomEvent('filtertoggle', {
+                bubbles: true,
+                composed: true,
+                detail: {
+                    filterId: filterId,
+                    value: value,
+                    checked: value !== '' // Only apply if value is not empty
+                }
+            }));
+        }
+    }
+
+    /**
      * Check if a value is selected
      */
     isValueSelected(value) {

@@ -228,6 +228,7 @@ public with sharing class CustomProductQueryController {
         List<String> visorValues,
         List<String> shapeValues,
         String productCode,
+        List<String> featuredPrograms,
         Boolean rushReadyOnly,
         Integer pageNumber,
         Integer pageSize,
@@ -242,6 +243,7 @@ public with sharing class CustomProductQueryController {
             System.debug('  structureValues: ' + structureValues);
             System.debug('  visorValues: ' + visorValues);
             System.debug('  shapeValues: ' + shapeValues);
+            System.debug('  featuredPrograms: ' + featuredPrograms);
             System.debug('  productCode: ' + productCode);
             System.debug('  rushReadyOnly: ' + rushReadyOnly);
             System.debug('  pageNumber: ' + pageNumber);
@@ -286,6 +288,16 @@ public with sharing class CustomProductQueryController {
             if (String.isNotBlank(productCode)) {
                 String productCodePattern = '%' + productCode + '%';
                 query += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
+            }
+
+            if (featuredPrograms != null && !featuredPrograms.isEmpty()) {
+                // Build OR conditions for featured programs
+                // Each value contains the special program code (e.g., 'QuickTurnDDT' for Dri-Duck)
+                List<String> programConditions = new List<String>();
+                for (String programCode : featuredPrograms) {
+                    programConditions.add('Special_Program_SAP__c LIKE \'%' + programCode + '%\'');
+                }
+                query += 'AND (' + String.join(programConditions, ' OR ') + ') ';
             }
 
             if (rushReadyOnly == true) {
@@ -351,6 +363,15 @@ public with sharing class CustomProductQueryController {
             if (String.isNotBlank(productCode)) {
                 String productCodePattern = '%' + productCode + '%';
                 countQuery += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
+            }
+
+            if (featuredPrograms != null && !featuredPrograms.isEmpty()) {
+                // Build OR conditions for featured programs
+                List<String> programConditions = new List<String>();
+                for (String programCode : featuredPrograms) {
+                    programConditions.add('Special_Program_SAP__c LIKE \'%' + programCode + '%\'');
+                }
+                countQuery += 'AND (' + String.join(programConditions, ' OR ') + ') ';
             }
 
             if (rushReadyOnly == true) {

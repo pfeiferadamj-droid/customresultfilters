@@ -26,26 +26,40 @@ public with sharing class CustomFilterController {
 
     /**
      * Get Quick Turn category filters
-     * Includes: Product Code, Shape, Profile, Panels, Structure, Visor, Rush Ready
+     * Ordered: Search, Featured Programs, Panels, Profile, Shape, Structure, Visor, Rush Ready
      */
     private static List<FilterWrapper> getQuickTurnFilters() {
         List<FilterWrapper> filters = new List<FilterWrapper>();
 
-        // Product Code Filter
-        FilterWrapper productCodeFilter = new FilterWrapper();
-        productCodeFilter.id = 'productCode';
-        productCodeFilter.label = 'Product Code';
-        productCodeFilter.fieldType = 'text';
-        productCodeFilter.values = new List<FilterValueWrapper>();
-        filters.add(productCodeFilter);
+        // Search Filter (renamed from Product Code)
+        FilterWrapper searchFilter = new FilterWrapper();
+        searchFilter.id = 'productCode';
+        searchFilter.label = 'Search';
+        searchFilter.fieldType = 'text';
+        searchFilter.values = new List<FilterValueWrapper>();
+        filters.add(searchFilter);
 
-        // Shape Filter
-        FilterWrapper shapeFilter = new FilterWrapper();
-        shapeFilter.id = 'shape';
-        shapeFilter.label = 'Shape';
-        shapeFilter.fieldType = 'picklist';
-        shapeFilter.values = getShapePicklistValues();
-        filters.add(shapeFilter);
+        // Featured Programs Filter
+        FilterWrapper featuredProgramsFilter = new FilterWrapper();
+        featuredProgramsFilter.id = 'featuredPrograms';
+        featuredProgramsFilter.label = 'Featured Programs';
+        featuredProgramsFilter.fieldType = 'checkbox';
+
+        FilterValueWrapper driDuckValue = new FilterValueWrapper();
+        driDuckValue.label = 'Dri-Duck';
+        driDuckValue.value = 'QuickTurnDDT';
+        driDuckValue.checked = false;
+
+        featuredProgramsFilter.values = new List<FilterValueWrapper>{ driDuckValue };
+        filters.add(featuredProgramsFilter);
+
+        // Panels Filter
+        FilterWrapper panelsFilter = new FilterWrapper();
+        panelsFilter.id = 'panels';
+        panelsFilter.label = 'Panels';
+        panelsFilter.fieldType = 'picklist';
+        panelsFilter.values = getPanelsPicklistValues();
+        filters.add(panelsFilter);
 
         // Profile Filter
         FilterWrapper profileFilter = new FilterWrapper();
@@ -55,13 +69,13 @@ public with sharing class CustomFilterController {
         profileFilter.values = getProfilePicklistValues();
         filters.add(profileFilter);
 
-        // Panels Filter
-        FilterWrapper panelsFilter = new FilterWrapper();
-        panelsFilter.id = 'panels';
-        panelsFilter.label = 'Panels';
-        panelsFilter.fieldType = 'picklist';
-        panelsFilter.values = getPanelsPicklistValues();
-        filters.add(panelsFilter);
+        // Shape Filter
+        FilterWrapper shapeFilter = new FilterWrapper();
+        shapeFilter.id = 'shape';
+        shapeFilter.label = 'Shape';
+        shapeFilter.fieldType = 'picklist';
+        shapeFilter.values = getShapePicklistValues();
+        filters.add(shapeFilter);
 
         // Structure Filter
         FilterWrapper structureFilter = new FilterWrapper();
