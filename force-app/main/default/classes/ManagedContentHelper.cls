@@ -31,9 +31,9 @@ public without sharing class ManagedContentHelper {
 
         System.debug('ManagedContent IDs: ' + managedContentIdStrings);
 
-        // Get the Network ID and Site ID
+        // Get the Network ID and ManagedContentChannel ID
         String networkId = null;
-        String siteId = null;
+        String channelId = null;
         try {
             List<Network> networks = [
                 SELECT Id, Name
@@ -46,21 +46,22 @@ public without sharing class ManagedContentHelper {
                 networkId = networks[0].Id;
                 System.debug('Found NetworkId for Shop: ' + networkId);
 
-                // Get the Site ID associated with this Network for correct channelId
-                List<Site> sites = [
-                    SELECT Id, Name
-                    FROM Site
-                    WHERE NetworkId = :networkId
+                // Get the ManagedContentChannel ID associated with this Network
+                // This is the correct channelId for CMS content delivery
+                List<ManagedContentChannel> channels = [
+                    SELECT Id, Name, Type
+                    FROM ManagedContentChannel
+                    WHERE IsCommunityChannel = true
                     LIMIT 1
                 ];
 
-                if (!sites.isEmpty()) {
-                    siteId = sites[0].Id;
-                    System.debug('Found Site ID: ' + siteId);
+                if (!channels.isEmpty()) {
+                    channelId = channels[0].Id;
+                    System.debug('Found ManagedContentChannel ID: ' + channelId + ' (Name: ' + channels[0].Name + ', Type: ' + channels[0].Type + ')');
                 }
             }
         } catch (Exception e) {
-            System.debug('Error getting NetworkId/SiteId: ' + e.getMessage());
+            System.debug('Error getting NetworkId/ChannelId: ' + e.getMessage());
         }
 
         // If we don't have a NetworkId, we can't proceed with ConnectApi
@@ -69,9 +70,12 @@ public without sharing class ManagedContentHelper {
             return productImageMap;
         }
 
-        // Use Site ID as channelId if available, otherwise fall back to webstoreId
-        String channelId = siteId != null ? siteId : webstoreId;
-        System.debug('Using channelId: ' + channelId + ' (Site ID: ' + siteId + ', Webstore ID: ' + webstoreId + ')');
+        // Use ManagedContentChannel ID as channelId if available, otherwise fall back to webstoreId
+        if (channelId == null) {
+            channelId = webstoreId;
+            System.debug('WARNING: No ManagedContentChannel found, falling back to webstoreId: ' + webstoreId);
+        }
+        System.debug('Using channelId: ' + channelId);
 
         // Use ConnectApi to get ManagedContent by IDs
         try {
