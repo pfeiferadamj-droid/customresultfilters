@@ -285,7 +285,7 @@ public with sharing class CustomProductQueryController {
 
             if (String.isNotBlank(productCode)) {
                 String productCodePattern = '%' + productCode + '%';
-                query += 'AND ProductCode LIKE :productCodePattern ';
+                query += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
 
             if (rushReadyOnly == true) {
@@ -350,7 +350,7 @@ public with sharing class CustomProductQueryController {
 
             if (String.isNotBlank(productCode)) {
                 String productCodePattern = '%' + productCode + '%';
-                countQuery += 'AND ProductCode LIKE :productCodePattern ';
+                countQuery += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
 
             if (rushReadyOnly == true) {
