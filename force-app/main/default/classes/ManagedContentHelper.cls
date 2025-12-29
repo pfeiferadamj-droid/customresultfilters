@@ -31,51 +31,43 @@ public without sharing class ManagedContentHelper {
 
         System.debug('ManagedContent IDs: ' + managedContentIdStrings);
 
-        // Get the Network ID and ManagedContentChannel ID
+        // Get configuration from Custom Metadata
         String networkId = null;
         String channelId = null;
+
         try {
-            List<Network> networks = [
-                SELECT Id, Name
-                FROM Network
-                WHERE Name = 'Shop'
+            // Query custom metadata for store defaults
+            B2B_Store_Defaults__mdt storeDefaults = [
+                SELECT Network_Id__c, ManagedContentChannel_Id__c
+                FROM B2B_Store_Defaults__mdt
+                WHERE DeveloperName = 'Shop_Defaults'
                 LIMIT 1
             ];
 
-            if (!networks.isEmpty()) {
-                networkId = networks[0].Id;
-                System.debug('Found NetworkId for Shop: ' + networkId);
+            networkId = storeDefaults.Network_Id__c;
+            channelId = storeDefaults.ManagedContentChannel_Id__c;
 
-                // Get the ManagedContentChannel ID for the community
-                // This is the correct channelId for CMS content delivery
-                // Query for PublicUnauthenticated type channels
-                List<ManagedContentChannel> channels = [
-                    SELECT Id, Name, Type
-                    FROM ManagedContentChannel
-                    WHERE Type = 'PublicUnauthenticated'
+            System.debug('Retrieved from Custom Metadata - NetworkId: ' + networkId + ', ChannelId: ' + channelId);
+        } catch (Exception e) {
+            System.debug('Error reading Custom Metadata: ' + e.getMessage());
+            System.debug('Falling back to querying Network directly');
+
+            // Fallback: Query Network directly if custom metadata not configured
+            try {
+                List<Network> networks = [
+                    SELECT Id, Name
+                    FROM Network
+                    WHERE Name = 'Shop'
                     LIMIT 1
                 ];
 
-                if (!channels.isEmpty()) {
-                    channelId = channels[0].Id;
-                    System.debug('Found ManagedContentChannel ID: ' + channelId + ' (Name: ' + channels[0].Name + ', Type: ' + channels[0].Type + ')');
-                } else {
-                    // If no community type found, try querying all channels
-                    System.debug('No community-type ManagedContentChannel found, querying all channels...');
-                    List<ManagedContentChannel> allChannels = [
-                        SELECT Id, Name, Type
-                        FROM ManagedContentChannel
-                        LIMIT 5
-                    ];
-                    System.debug('Available ManagedContentChannels: ' + allChannels);
-                    if (!allChannels.isEmpty()) {
-                        channelId = allChannels[0].Id;
-                        System.debug('Using first available channel: ' + channelId);
-                    }
+                if (!networks.isEmpty()) {
+                    networkId = networks[0].Id;
+                    System.debug('Found NetworkId from query: ' + networkId);
                 }
+            } catch (Exception ex) {
+                System.debug('Error querying Network: ' + ex.getMessage());
             }
-        } catch (Exception e) {
-            System.debug('Error getting NetworkId/ChannelId: ' + e.getMessage());
         }
 
         // If we don't have a NetworkId, we can't proceed with ConnectApi
@@ -84,10 +76,10 @@ public without sharing class ManagedContentHelper {
             return productImageMap;
         }
 
-        // Use ManagedContentChannel ID as channelId if available, otherwise fall back to webstoreId
+        // Use channelId from metadata, otherwise fall back to webstoreId
         if (channelId == null) {
             channelId = webstoreId;
-            System.debug('WARNING: No ManagedContentChannel found, falling back to webstoreId: ' + webstoreId);
+            System.debug('WARNING: No ManagedContentChannel_Id in Custom Metadata, falling back to webstoreId: ' + webstoreId);
         }
         System.debug('Using channelId: ' + channelId);
 
