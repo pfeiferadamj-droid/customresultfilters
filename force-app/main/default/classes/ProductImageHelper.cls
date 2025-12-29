@@ -136,11 +136,13 @@ public without sharing class ProductImageHelper {
                     }
                 } else {
                     // Try 3: Direct ManagedContent query as last resort
+                    // Use WITH SYSTEM_MODE to bypass guest user permissions
                     System.debug('ProductImageHelper: No ManagedContentVariant records found, trying ManagedContent...');
                     List<ManagedContent> managedContentList = [
                         SELECT Id, ContentKey
                         FROM ManagedContent
                         WHERE Id IN :managedContentVersionIds
+                        WITH SYSTEM_MODE
                     ];
 
                     System.debug('ProductImageHelper: Found ' + managedContentList.size() + ' ManagedContent records');
