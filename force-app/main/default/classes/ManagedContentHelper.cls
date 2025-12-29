@@ -48,11 +48,11 @@ public without sharing class ManagedContentHelper {
 
                 // Get the ManagedContentChannel ID for the community
                 // This is the correct channelId for CMS content delivery
-                // Query for community-type channels
+                // Query for PublicUnauthenticated type channels
                 List<ManagedContentChannel> channels = [
                     SELECT Id, Name, Type
                     FROM ManagedContentChannel
-                    WHERE Type = 'community'
+                    WHERE Type = 'PublicUnauthenticated'
                     LIMIT 1
                 ];
 
