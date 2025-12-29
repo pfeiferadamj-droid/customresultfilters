@@ -46,18 +46,32 @@ public without sharing class ManagedContentHelper {
                 networkId = networks[0].Id;
                 System.debug('Found NetworkId for Shop: ' + networkId);
 
-                // Get the ManagedContentChannel ID associated with this Network
+                // Get the ManagedContentChannel ID for the community
                 // This is the correct channelId for CMS content delivery
+                // Query for community-type channels
                 List<ManagedContentChannel> channels = [
                     SELECT Id, Name, Type
                     FROM ManagedContentChannel
-                    WHERE IsCommunityChannel = true
+                    WHERE Type = 'community'
                     LIMIT 1
                 ];
 
                 if (!channels.isEmpty()) {
                     channelId = channels[0].Id;
                     System.debug('Found ManagedContentChannel ID: ' + channelId + ' (Name: ' + channels[0].Name + ', Type: ' + channels[0].Type + ')');
+                } else {
+                    // If no community type found, try querying all channels
+                    System.debug('No community-type ManagedContentChannel found, querying all channels...');
+                    List<ManagedContentChannel> allChannels = [
+                        SELECT Id, Name, Type
+                        FROM ManagedContentChannel
+                        LIMIT 5
+                    ];
+                    System.debug('Available ManagedContentChannels: ' + allChannels);
+                    if (!allChannels.isEmpty()) {
+                        channelId = allChannels[0].Id;
+                        System.debug('Using first available channel: ' + channelId);
+                    }
                 }
             }
         } catch (Exception e) {
