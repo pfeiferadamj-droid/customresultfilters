@@ -1,12 +1,14 @@
 /**
  * Product Image Helper
- * Retrieves product image URLs by querying ManagedContent for ContentKeys
+ * Retrieves product image URLs by querying ManagedContentVersion for ContentKeys
  * Alternative to ManagedContentHelper that uses direct SOQL instead of ConnectApi
+ *
+ * Note: ProductMedia.ElectronicMediaId is a ManagedContentVersion ID, not ManagedContent ID
  */
 public without sharing class ProductImageHelper {
 
     /**
-     * Get product image URLs using direct ManagedContent queries
+     * Get product image URLs using direct ManagedContentVersion queries
      * @param productIds List of Product2 IDs
      * @param webstoreId The webstore ID for the image URL
      * @return Map of Product2 Id to image URL
@@ -18,9 +20,9 @@ public without sharing class ProductImageHelper {
         String orgId = UserInfo.getOrganizationId();
         String basePath = '/shop/sfsites/c';
 
-        // Step 1: Get ProductMedia -> ManagedContent mapping
-        Map<Id, Id> productToManagedContentMap = new Map<Id, Id>();
-        Set<Id> managedContentIds = new Set<Id>();
+        // Step 1: Get ProductMedia -> ManagedContentVersion mapping
+        Map<Id, Id> productToManagedContentVersionMap = new Map<Id, Id>();
+        Set<Id> managedContentVersionIds = new Set<Id>();
 
         System.debug('ProductImageHelper: Fetching ProductMedia for ' + productIds.size() + ' products');
 
@@ -32,54 +34,76 @@ public without sharing class ProductImageHelper {
             ORDER BY SortOrder ASC NULLS LAST
         ]) {
             // Only take the first image per product (lowest SortOrder)
-            if (!productToManagedContentMap.containsKey(pm.ProductId)) {
-                productToManagedContentMap.put(pm.ProductId, pm.ElectronicMediaId);
-                managedContentIds.add(pm.ElectronicMediaId);
-                System.debug('  Product ' + pm.ProductId + ' -> ManagedContent ' + pm.ElectronicMediaId);
+            if (!productToManagedContentVersionMap.containsKey(pm.ProductId)) {
+                productToManagedContentVersionMap.put(pm.ProductId, pm.ElectronicMediaId);
+                managedContentVersionIds.add(pm.ElectronicMediaId);
+                System.debug('  Product ' + pm.ProductId + ' -> ElectronicMediaId ' + pm.ElectronicMediaId);
             }
         }
 
-        if (productToManagedContentMap.isEmpty()) {
+        if (productToManagedContentVersionMap.isEmpty()) {
             System.debug('ProductImageHelper: No ProductMedia records found');
             return productImageMap;
         }
 
-        System.debug('ProductImageHelper: Found ' + managedContentIds.size() + ' ManagedContent IDs');
+        System.debug('ProductImageHelper: Found ' + managedContentVersionIds.size() + ' ElectronicMediaIds');
 
-        // Step 2: Query ManagedContent to get ContentKeys
-        // Note: ElectronicMediaId is a ManagedContent ID, NOT a ContentKey
-        // We need to query ManagedContent.ContentKey field
+        // Step 2: Query ManagedContentVersion to get ManagedContentId and ContentKey
+        // Note: ElectronicMediaId appears to be a ManagedContentVersion ID, not ManagedContent ID
         Map<Id, String> contentKeyMap = new Map<Id, String>();
 
         try {
-            List<ManagedContent> managedContentList = [
-                SELECT Id, ContentKey
-                FROM ManagedContent
-                WHERE Id IN :managedContentIds
+            // Try querying ManagedContentVersion first
+            List<ManagedContentVersion> versionList = [
+                SELECT Id, ManagedContentId, ContentKey
+                FROM ManagedContentVersion
+                WHERE Id IN :managedContentVersionIds
             ];
 
-            System.debug('ProductImageHelper: Found ' + managedContentList.size() + ' ManagedContent records');
+            System.debug('ProductImageHelper: Found ' + versionList.size() + ' ManagedContentVersion records');
 
-            for (ManagedContent mc : managedContentList) {
-                if (String.isNotBlank(mc.ContentKey)) {
-                    contentKeyMap.put(mc.Id, mc.ContentKey);
-                    System.debug('  ManagedContent ' + mc.Id + ' -> ContentKey: ' + mc.ContentKey);
-                } else {
-                    System.debug('  WARNING: ManagedContent ' + mc.Id + ' has null ContentKey');
+            if (!versionList.isEmpty()) {
+                // ElectronicMediaId is a ManagedContentVersion ID
+                for (ManagedContentVersion mcv : versionList) {
+                    if (String.isNotBlank(mcv.ContentKey)) {
+                        contentKeyMap.put(mcv.Id, mcv.ContentKey);
+                        System.debug('  ManagedContentVersion ' + mcv.Id + ' -> ContentKey: ' + mcv.ContentKey);
+                    } else {
+                        System.debug('  WARNING: ManagedContentVersion ' + mcv.Id + ' has null ContentKey');
+                    }
+                }
+            } else {
+                // If no versions found, try querying ManagedContent directly
+                System.debug('ProductImageHelper: No ManagedContentVersion records found, trying ManagedContent...');
+                List<ManagedContent> managedContentList = [
+                    SELECT Id, ContentKey
+                    FROM ManagedContent
+                    WHERE Id IN :managedContentVersionIds
+                ];
+
+                System.debug('ProductImageHelper: Found ' + managedContentList.size() + ' ManagedContent records');
+
+                for (ManagedContent mc : managedContentList) {
+                    if (String.isNotBlank(mc.ContentKey)) {
+                        contentKeyMap.put(mc.Id, mc.ContentKey);
+                        System.debug('  ManagedContent ' + mc.Id + ' -> ContentKey: ' + mc.ContentKey);
+                    } else {
+                        System.debug('  WARNING: ManagedContent ' + mc.Id + ' has null ContentKey');
+                    }
                 }
             }
 
         } catch (Exception e) {
-            System.debug('ERROR querying ManagedContent: ' + e.getMessage());
+            System.debug('ERROR querying ManagedContent/Version: ' + e.getMessage());
             System.debug('  Error type: ' + e.getTypeName());
             System.debug('  Stack trace: ' + e.getStackTraceString());
             return productImageMap;
         }
 
         // Step 3: Build image URLs using ContentKeys
-        for (Id productId : productToManagedContentMap.keySet()) {
-            Id managedContentId = productToManagedContentMap.get(productId);
-            String contentKey = contentKeyMap.get(managedContentId);
+        for (Id productId : productToManagedContentVersionMap.keySet()) {
+            Id versionId = productToManagedContentVersionMap.get(productId);
+            String contentKey = contentKeyMap.get(versionId);
 
             if (String.isNotBlank(contentKey)) {
                 // Build CMS delivery URL
@@ -88,7 +112,7 @@ public without sharing class ProductImageHelper {
                 productImageMap.put(productId, imageUrl);
                 System.debug('  Built URL for Product ' + productId + ': ' + imageUrl);
             } else {
-                System.debug('  ERROR: No ContentKey found for ManagedContent ' + managedContentId + ' (Product ' + productId + ')');
+                System.debug('  ERROR: No ContentKey found for ElectronicMediaId ' + versionId + ' (Product ' + productId + ')');
             }
         }
 
