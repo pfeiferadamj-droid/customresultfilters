@@ -83,55 +83,90 @@ public without sharing class ManagedContentHelper {
         }
         System.debug('Using channelId: ' + channelId);
 
-        // Use ConnectApi to get ManagedContent by IDs
+        // Try direct SOQL query first (bypasses ConnectAPI permission issues)
         try {
-            // Call ConnectAPI with the list of ManagedContent IDs
-            ConnectApi.ManagedContentVersionCollection contentCollection =
-                ConnectApi.ManagedContent.getManagedContentByIds(
-                    networkId,
-                    managedContentIdStrings,
-                    0,
-                    managedContentIdStrings.size(),
-                    null,
-                    null,
-                    false
-                );
+            System.debug('Attempting direct SOQL query for ManagedContent ContentKeys');
 
-            System.debug('ConnectApi returned ' + contentCollection.items.size() + ' items');
+            // Query ManagedContent directly to get ContentKey
+            // Using WITHOUT SHARING mode to bypass user permissions
+            List<ManagedContent> managedContents = [
+                SELECT Id, ContentKey
+                FROM ManagedContent
+                WHERE Id IN :managedContentIdStrings
+            ];
 
-            if (contentCollection.items.isEmpty()) {
-                System.debug('WARNING: ConnectAPI returned 0 items for ManagedContent IDs: ' + managedContentIdStrings);
-                System.debug('This usually means:');
-                System.debug('  1. ManagedContent is not published to the community/channel');
-                System.debug('  2. ManagedContent is in a ContentSpace not associated with this community');
-                System.debug('  3. Current user lacks permission to access this content via ConnectAPI');
-                System.debug('  4. ElectronicMediaId field contains an ID that is not actually ManagedContent');
-                System.debug('Consider adding a custom ContentKey__c field to ProductMedia to store the key directly.');
-            }
+            System.debug('Direct SOQL returned ' + managedContents.size() + ' ManagedContent records');
 
-            // Build map of ManagedContent ID to ContentKey
-            Map<String, String> idToKeyMap = new Map<String, String>();
-            for (ConnectApi.ManagedContentVersion item : contentCollection.items) {
-                System.debug('Content: ' + item.contentKey + ', managedContentId: ' + item.managedContentId);
-                idToKeyMap.put(item.managedContentId, item.contentKey);
-            }
+            if (!managedContents.isEmpty()) {
+                // Build map of ManagedContent ID to ContentKey
+                Map<String, String> idToKeyMap = new Map<String, String>();
+                for (ManagedContent mc : managedContents) {
+                    idToKeyMap.put(String.valueOf(mc.Id), mc.ContentKey);
+                    System.debug('SOQL Content: Id=' + mc.Id + ', ContentKey=' + mc.ContentKey);
+                }
 
-            // Build image URLs
-            for (Id productId : productToManagedContentMap.keySet()) {
-                Id managedContentId = productToManagedContentMap.get(productId);
-                String contentKey = idToKeyMap.get(String.valueOf(managedContentId));
+                // Build image URLs
+                for (Id productId : productToManagedContentMap.keySet()) {
+                    Id managedContentId = productToManagedContentMap.get(productId);
+                    String contentKey = idToKeyMap.get(String.valueOf(managedContentId));
 
-                if (String.isNotBlank(contentKey)) {
-                    // Use the same format as working Commerce Search URLs
-                    String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
-                                     '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
-                    productImageMap.put(productId, imageUrl);
-                    System.debug('Built URL for ' + productId + ': ' + imageUrl);
+                    if (String.isNotBlank(contentKey)) {
+                        // Use the same format as working Commerce Search URLs
+                        String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
+                                         '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
+                        productImageMap.put(productId, imageUrl);
+                        System.debug('Built URL for ' + productId + ': ' + imageUrl);
+                    }
+                }
+            } else {
+                System.debug('WARNING: Direct SOQL returned 0 ManagedContent records');
+                System.debug('Falling back to ConnectAPI approach...');
+
+                // Fallback to ConnectAPI if SOQL fails
+                ConnectApi.ManagedContentVersionCollection contentCollection =
+                    ConnectApi.ManagedContent.getManagedContentByIds(
+                        networkId,
+                        managedContentIdStrings,
+                        0,
+                        managedContentIdStrings.size(),
+                        null,
+                        null,
+                        false
+                    );
+
+                System.debug('ConnectApi returned ' + contentCollection.items.size() + ' items');
+
+                if (contentCollection.items.isEmpty()) {
+                    System.debug('ERROR: Both SOQL and ConnectAPI returned 0 items for ManagedContent IDs: ' + managedContentIdStrings);
+                    System.debug('Possible causes:');
+                    System.debug('  1. ManagedContent records do not exist or are not published');
+                    System.debug('  2. External Apps Login user lacks object permissions');
+                    System.debug('  3. Consider adding a custom ContentKey__c field to ProductMedia');
+                }
+
+                // Build map of ManagedContent ID to ContentKey from ConnectAPI
+                Map<String, String> idToKeyMap = new Map<String, String>();
+                for (ConnectApi.ManagedContentVersion item : contentCollection.items) {
+                    System.debug('ConnectAPI Content: ' + item.contentKey + ', managedContentId: ' + item.managedContentId);
+                    idToKeyMap.put(item.managedContentId, item.contentKey);
+                }
+
+                // Build image URLs
+                for (Id productId : productToManagedContentMap.keySet()) {
+                    Id managedContentId = productToManagedContentMap.get(productId);
+                    String contentKey = idToKeyMap.get(String.valueOf(managedContentId));
+
+                    if (String.isNotBlank(contentKey)) {
+                        String imageUrl = basePath + '/cms/delivery/media/' + contentKey +
+                                         '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
+                        productImageMap.put(productId, imageUrl);
+                        System.debug('Built URL for ' + productId + ': ' + imageUrl);
+                    }
                 }
             }
 
         } catch (Exception e) {
-            System.debug('Error using ConnectApi: ' + e.getMessage());
+            System.debug('Error retrieving ManagedContent: ' + e.getMessage());
             System.debug('Stack trace: ' + e.getStackTraceString());
         }
 
