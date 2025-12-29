@@ -32,18 +32,24 @@ public without sharing class ProductImageHelper {
 
         System.debug('ProductImageHelper: Fetching ProductMedia for ' + productIds.size() + ' products');
 
-        for (ProductMedia pm : [
-            SELECT ProductId, ElectronicMediaId
-            FROM ProductMedia
-            WHERE ProductId IN :productIds
-            AND ElectronicMediaId != null
-            ORDER BY SortOrder ASC NULLS LAST
-        ]) {
+        // Query ProductMedia - use dynamic query to handle optional fields gracefully
+        String pmQuery = 'SELECT ProductId, ElectronicMediaId FROM ProductMedia ' +
+                        'WHERE ProductId IN :productIds AND ElectronicMediaId != null ' +
+                        'ORDER BY SortOrder ASC NULLS LAST';
+
+        List<ProductMedia> productMediaList = Database.query(pmQuery);
+        System.debug('ProductImageHelper: Found ' + productMediaList.size() + ' ProductMedia records');
+
+        for (ProductMedia pm : productMediaList) {
             // Only take the first image per product (lowest SortOrder)
             if (!productToManagedContentVersionMap.containsKey(pm.ProductId)) {
                 productToManagedContentVersionMap.put(pm.ProductId, pm.ElectronicMediaId);
                 managedContentVersionIds.add(pm.ElectronicMediaId);
-                System.debug('  Product ' + pm.ProductId + ' -> ElectronicMediaId ' + pm.ElectronicMediaId);
+
+                // Debug: Show all available fields on this ProductMedia record
+                System.debug('  Product ' + pm.ProductId + ' ProductMedia fields:');
+                System.debug('    ' + pm);
+                System.debug('    ElectronicMediaId: ' + pm.ElectronicMediaId);
             }
         }
 
