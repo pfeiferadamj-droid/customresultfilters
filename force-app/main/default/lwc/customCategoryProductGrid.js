@@ -948,7 +948,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         // Get pricebook entries for this product from our SOQL query results
         const productPricebookEntries = this.pricebookEntries?.[product.id];
 
-        // If currentPricebookId is specified and we have pricebook entries, find matching price
+        // Strategy 1: If currentPricebookId is specified and we have pricebook entries, find matching price
         if (this.currentPricebookId && productPricebookEntries && productPricebookEntries.length > 0) {
             console.log('Looking for pricebook entry:', this.currentPricebookId);
             console.log('Available pricebook entries for product:', productPricebookEntries);
@@ -967,17 +967,26 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 return selectedPrice;
             } else {
                 console.log('No matching pricebook entry found for:', this.currentPricebookId);
+                // Fall through to Strategy 2
             }
-        } else if (this.currentPricebookId) {
-            console.log('No pricebook entries available for product:', product.id);
         }
 
-        // Fallback: use the default prices from the product
+        // Strategy 2: If we have pricebook entries but no currentPricebookId (or no match), use first available entry
+        if (productPricebookEntries && productPricebookEntries.length > 0) {
+            const firstEntry = productPricebookEntries[0];
+            console.log('Using first available pricebook entry:', firstEntry);
+            selectedPrice.negotiatedPrice = firstEntry.unitPrice;
+            selectedPrice.listingPrice = firstEntry.unitPrice; // Use same price for both
+            selectedPrice.currencyIsoCode = product.prices.currencyIsoCode || product.currencyIsoCode || 'USD';
+            return selectedPrice;
+        }
+
+        // Strategy 3: Fallback to product.prices (for Commerce Search API results)
         selectedPrice.negotiatedPrice = product.prices.unitPrice || product.prices.negotiatedPrice;
         selectedPrice.listingPrice = product.prices.listPrice || product.prices.listingPrice;
         selectedPrice.currencyIsoCode = product.prices.currencyIsoCode || product.currencyIsoCode || 'USD';
 
-        console.log('Selected price (fallback):', selectedPrice);
+        console.log('Selected price (fallback from product.prices):', selectedPrice);
         return selectedPrice;
     }
 
