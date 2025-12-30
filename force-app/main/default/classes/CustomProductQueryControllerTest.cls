@@ -48,22 +48,42 @@ private class CustomProductQueryControllerTest {
         insert products;
 
         // Get standard pricebook
-        Pricebook2 standardPB = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
+        Id standardPBId = Test.getStandardPricebookId();
 
-        // Create pricebook entries
+        // Query for existing pricebook entries to avoid duplicates
+        Set<Id> productIds = new Set<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        List<PricebookEntry> existingPBEs = [
+            SELECT Product2Id
+            FROM PricebookEntry
+            WHERE Product2Id IN :productIds
+            AND Pricebook2Id = :standardPBId
+        ];
+
+        Set<Id> existingProductIds = new Set<Id>();
+        for (PricebookEntry pbe : existingPBEs) {
+            existingProductIds.add(pbe.Product2Id);
+        }
+
+        // Create pricebook entries only for products that don't have them
         List<PricebookEntry> pbeList = new List<PricebookEntry>();
         for (Product2 p : products) {
-            pbeList.add(new PricebookEntry(
-                Pricebook2Id = standardPB.Id,
-                Product2Id = p.Id,
-                UnitPrice = 100.00,
-                IsActive = true
-            ));
+            if (!existingProductIds.contains(p.Id)) {
+                pbeList.add(new PricebookEntry(
+                    Pricebook2Id = standardPBId,
+                    Product2Id = p.Id,
+                    UnitPrice = 100.00,
+                    IsActive = true
+                ));
+            }
         }
-        insert pbeList;
+
+        if (!pbeList.isEmpty()) {
+            insert pbeList;
+        }
     }
 
     @isTest
