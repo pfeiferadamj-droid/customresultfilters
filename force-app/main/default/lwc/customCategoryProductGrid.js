@@ -438,7 +438,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             const endUserFilterValues = this.currentFilters['endUser'];
             const hasEndUserFilter = endUserFilterValues && endUserFilterValues.length > 0;
 
-            // Check if using Quick Turn text field filters (profile, panels, structure, visor, shape, productCode, featuredPrograms, rushReady)
+            // Check if using Quick Turn text field filters (profile, panels, structure, visor, shape, productCode, specialPrograms)
             const hasQuickTurnFilters =
                 (this.currentFilters['profile'] && this.currentFilters['profile'].length > 0) ||
                 (this.currentFilters['panels'] && this.currentFilters['panels'].length > 0) ||
@@ -446,8 +446,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 (this.currentFilters['visor'] && this.currentFilters['visor'].length > 0) ||
                 (this.currentFilters['shape'] && this.currentFilters['shape'].length > 0) ||
                 (this.currentFilters['productCode'] && this.currentFilters['productCode'].length > 0) ||
-                (this.currentFilters['featuredPrograms'] && this.currentFilters['featuredPrograms'].length > 0) ||
-                (this.currentFilters['rushReady'] && this.currentFilters['rushReady'].length > 0);
+                (this.currentFilters['specialPrograms'] && this.currentFilters['specialPrograms'].length > 0);
 
             if (hasEndUserFilter) {
                 // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
@@ -567,9 +566,14 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             restrictToParents: this.restrictToParents
         });
 
+        // Get product code search value if provided
+        const productCodeValues = this.currentFilters['productCode'] || [];
+        const productCode = productCodeValues.length > 0 ? productCodeValues[0] : null;
+
         const result = await getProductsByEndUser({
             categoryId: this.resolvedCategoryId,
             endUserIds: endUserIds,
+            productCode: productCode,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
             restrictToParents: this.restrictToParents,
@@ -633,14 +637,10 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         const visorValues = this.currentFilters['visor'] || [];
         const shapeValues = this.currentFilters['shape'] || [];
         const productCodeValues = this.currentFilters['productCode'] || [];
-        const featuredProgramsValues = this.currentFilters['featuredPrograms'] || [];
-        const rushReadyValues = this.currentFilters['rushReady'] || [];
+        const specialProgramsValues = this.currentFilters['specialPrograms'] || [];
 
         // Product code is a text search, get the first value
         const productCode = productCodeValues.length > 0 ? productCodeValues[0] : null;
-
-        // Rush ready is a boolean checkbox
-        const rushReadyOnly = rushReadyValues.length > 0 && rushReadyValues[0] === 'true';
 
         console.log('Fetching products by Quick Turn filters using SOQL:', {
             categoryId: this.resolvedCategoryId,
@@ -650,8 +650,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             visorValues,
             shapeValues,
             productCode,
-            featuredProgramsValues,
-            rushReadyOnly,
+            specialProgramsValues,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
             restrictToParents: this.restrictToParents
@@ -665,8 +664,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             visorValues: visorValues.length > 0 ? visorValues : null,
             shapeValues: shapeValues.length > 0 ? shapeValues : null,
             productCode: productCode,
-            featuredPrograms: featuredProgramsValues.length > 0 ? featuredProgramsValues : null,
-            rushReadyOnly: rushReadyOnly,
+            specialPrograms: specialProgramsValues.length > 0 ? specialProgramsValues : null,
             pageNumber: this.currentPage,
             pageSize: this.productsPerPage,
             restrictToParents: this.restrictToParents,
@@ -1384,7 +1382,7 @@ handleShowProduct(event) {
             }
 
             // Skip Quick Turn text field filters - handled via SOQL query instead
-            const quickTurnFilters = ['profile', 'panels', 'structure', 'visor', 'shape', 'productCode', 'featuredPrograms', 'rushReady'];
+            const quickTurnFilters = ['profile', 'panels', 'structure', 'visor', 'shape', 'productCode', 'specialPrograms'];
             if (quickTurnFilters.includes(filterId)) {
                 console.log('customCategoryProductGrid: Skipping ' + filterId + ' filter (text field not supported in Commerce Search refinements)');
                 continue;

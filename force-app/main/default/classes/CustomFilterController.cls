@@ -44,7 +44,7 @@ public with sharing class CustomFilterController {
 
     /**
      * Get Quick Turn category filters
-     * Ordered: Search, Featured Programs, Panels, Profile, Shape, Structure, Visor, Rush Ready
+     * Ordered: Search, Special Programs, Panels, Profile, Shape, Structure, Visor
      */
     private static List<FilterWrapper> getQuickTurnFilters() {
         List<FilterWrapper> filters = new List<FilterWrapper>();
@@ -57,19 +57,24 @@ public with sharing class CustomFilterController {
         searchFilter.values = new List<FilterValueWrapper>();
         filters.add(searchFilter);
 
-        // Featured Programs Filter
-        FilterWrapper featuredProgramsFilter = new FilterWrapper();
-        featuredProgramsFilter.id = 'featuredPrograms';
-        featuredProgramsFilter.label = 'Featured Programs';
-        featuredProgramsFilter.fieldType = 'checkbox';
+        // Special Programs Filter (includes Dri-Duck and Rush Ready)
+        FilterWrapper specialProgramsFilter = new FilterWrapper();
+        specialProgramsFilter.id = 'specialPrograms';
+        specialProgramsFilter.label = 'Special Programs';
+        specialProgramsFilter.fieldType = 'checkbox';
 
         FilterValueWrapper driDuckValue = new FilterValueWrapper();
         driDuckValue.label = 'Dri-Duck';
         driDuckValue.value = 'QuickTurnDDT';
         driDuckValue.checked = false;
 
-        featuredProgramsFilter.values = new List<FilterValueWrapper>{ driDuckValue };
-        filters.add(featuredProgramsFilter);
+        FilterValueWrapper rushReadyValue = new FilterValueWrapper();
+        rushReadyValue.label = 'Rush Ready';
+        rushReadyValue.value = 'RushReady';
+        rushReadyValue.checked = false;
+
+        specialProgramsFilter.values = new List<FilterValueWrapper>{ driDuckValue, rushReadyValue };
+        filters.add(specialProgramsFilter);
 
         // Panels Filter
         FilterWrapper panelsFilter = new FilterWrapper();
@@ -111,30 +116,24 @@ public with sharing class CustomFilterController {
         visorFilter.values = getVisorPicklistValues();
         filters.add(visorFilter);
 
-        // Rush Ready Filter (Checkbox)
-        FilterWrapper rushReadyFilter = new FilterWrapper();
-        rushReadyFilter.id = 'rushReady';
-        rushReadyFilter.label = 'Rush Ready';
-        rushReadyFilter.fieldType = 'checkbox';
-
-        FilterValueWrapper rushReadyValue = new FilterValueWrapper();
-        rushReadyValue.label = 'Rush Ready Only';
-        rushReadyValue.value = 'true';
-        rushReadyValue.checked = false;
-
-        rushReadyFilter.values = new List<FilterValueWrapper>{ rushReadyValue };
-        filters.add(rushReadyFilter);
-
         return filters;
     }
 
     /**
      * Get My Products category filters
-     * Includes: End User (lookup to custom object)
+     * Includes: Search, End User
      * @param includeAccountEndUsers Whether to include all account end users or just user's products
      */
     private static List<FilterWrapper> getMyProductsFilters(Boolean includeAccountEndUsers) {
         List<FilterWrapper> filters = new List<FilterWrapper>();
+
+        // Search Filter
+        FilterWrapper searchFilter = new FilterWrapper();
+        searchFilter.id = 'productCode';
+        searchFilter.label = 'Search';
+        searchFilter.fieldType = 'text';
+        searchFilter.values = new List<FilterValueWrapper>();
+        filters.add(searchFilter);
 
         // End User Filter
         FilterWrapper endUserFilter = new FilterWrapper();

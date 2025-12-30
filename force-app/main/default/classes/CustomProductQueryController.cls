@@ -20,6 +20,7 @@ public with sharing class CustomProductQueryController {
     public static ProductQueryResult getProductsByEndUser(
         String categoryId,
         List<String> endUserIds,
+        String productCode,
         Integer pageNumber,
         Integer pageSize,
         Boolean restrictToParents,
@@ -29,6 +30,7 @@ public with sharing class CustomProductQueryController {
             System.debug('CustomProductQueryController.getProductsByEndUser called');
             System.debug('  categoryId: ' + categoryId);
             System.debug('  endUserIds: ' + endUserIds);
+            System.debug('  productCode: ' + productCode);
             System.debug('  pageNumber: ' + pageNumber);
             System.debug('  pageSize: ' + pageSize);
             System.debug('  restrictToParents: ' + restrictToParents);
@@ -74,11 +76,16 @@ public with sharing class CustomProductQueryController {
                 System.debug('  Adding parent restriction: Is_Parent__c = Yes');
             }
 
-            // Add category filter if provided
-            if (String.isNotBlank(categoryId)) {
-                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
-                System.debug('  Adding category filter for: ' + categoryId);
+            // Add product code search if provided
+            if (String.isNotBlank(productCode)) {
+                String productCodePattern = '%' + productCode + '%';
+                query += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
+                System.debug('  Adding product code search: ' + productCode);
             }
+
+            // Note: Category filter not applied for End User filtering
+            // My Products category should show all products for the selected end user
+            // regardless of category assignment in ProductCategoryProduct
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -119,10 +126,13 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND Is_Parent__c = \'Yes\' ';
             }
 
-            // Add category filter to count query
-            if (String.isNotBlank(categoryId)) {
-                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+            // Add product code search to count query
+            if (String.isNotBlank(productCode)) {
+                String productCodePattern = '%' + productCode + '%';
+                countQuery += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
+
+            // Note: Category filter not applied (see main query comment above)
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
@@ -222,8 +232,7 @@ public with sharing class CustomProductQueryController {
         List<String> visorValues,
         List<String> shapeValues,
         String productCode,
-        List<String> featuredPrograms,
-        Boolean rushReadyOnly,
+        List<String> specialPrograms,
         Integer pageNumber,
         Integer pageSize,
         Boolean restrictToParents,
@@ -237,9 +246,8 @@ public with sharing class CustomProductQueryController {
             System.debug('  structureValues: ' + structureValues);
             System.debug('  visorValues: ' + visorValues);
             System.debug('  shapeValues: ' + shapeValues);
-            System.debug('  featuredPrograms: ' + featuredPrograms);
+            System.debug('  specialPrograms: ' + specialPrograms);
             System.debug('  productCode: ' + productCode);
-            System.debug('  rushReadyOnly: ' + rushReadyOnly);
             System.debug('  pageNumber: ' + pageNumber);
             System.debug('  pageSize: ' + pageSize);
             System.debug('  restrictToParents: ' + restrictToParents);
@@ -284,23 +292,31 @@ public with sharing class CustomProductQueryController {
                 query += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
 
-            if (featuredPrograms != null && !featuredPrograms.isEmpty()) {
-                // Build OR conditions for featured programs
-                // Each value contains the special program code (e.g., 'QuickTurnDDT' for Dri-Duck)
+            if (specialPrograms != null && !specialPrograms.isEmpty()) {
+                // Build OR conditions for special programs
+                // Supports: 'QuickTurnDDT' (Dri-Duck) and 'RushReady' (Rush Ready)
                 List<String> programConditions = new List<String>();
-                for (String programCode : featuredPrograms) {
-                    programConditions.add('Special_Program_SAP__c LIKE \'%' + programCode + '%\'');
+                for (String programValue : specialPrograms) {
+                    if (programValue == 'QuickTurnDDT') {
+                        programConditions.add('Special_Program_SAP__c LIKE \'%QuickTurnDDT%\'');
+                    } else if (programValue == 'RushReady') {
+                        programConditions.add('Rush_Ready__c = true');
+                    }
                 }
-                query += 'AND (' + String.join(programConditions, ' OR ') + ') ';
-            }
-
-            if (rushReadyOnly == true) {
-                query += 'AND Rush_Ready__c = true ';
+                if (!programConditions.isEmpty()) {
+                    query += 'AND (' + String.join(programConditions, ' OR ') + ') ';
+                }
             }
 
             if (restrictToParents != null && restrictToParents) {
                 query += 'AND Is_Parent__c = \'Yes\' ';
                 System.debug('  Adding parent restriction: Is_Parent__c = Yes');
+            }
+
+            // Add category filter if provided
+            if (String.isNotBlank(categoryId)) {
+                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                System.debug('  Adding category filter for: ' + categoryId);
             }
 
             query += 'ORDER BY Name ASC ' +
@@ -359,21 +375,28 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
 
-            if (featuredPrograms != null && !featuredPrograms.isEmpty()) {
-                // Build OR conditions for featured programs
+            if (specialPrograms != null && !specialPrograms.isEmpty()) {
+                // Build OR conditions for special programs
                 List<String> programConditions = new List<String>();
-                for (String programCode : featuredPrograms) {
-                    programConditions.add('Special_Program_SAP__c LIKE \'%' + programCode + '%\'');
+                for (String programValue : specialPrograms) {
+                    if (programValue == 'QuickTurnDDT') {
+                        programConditions.add('Special_Program_SAP__c LIKE \'%QuickTurnDDT%\'');
+                    } else if (programValue == 'RushReady') {
+                        programConditions.add('Rush_Ready__c = true');
+                    }
                 }
-                countQuery += 'AND (' + String.join(programConditions, ' OR ') + ') ';
-            }
-
-            if (rushReadyOnly == true) {
-                countQuery += 'AND Rush_Ready__c = true ';
+                if (!programConditions.isEmpty()) {
+                    countQuery += 'AND (' + String.join(programConditions, ' OR ') + ') ';
+                }
             }
 
             if (restrictToParents != null && restrictToParents) {
                 countQuery += 'AND Is_Parent__c = \'Yes\' ';
+            }
+
+            // Add category filter to count query
+            if (String.isNotBlank(categoryId)) {
+                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
             }
 
             Integer totalCount = Database.countQuery(countQuery);
