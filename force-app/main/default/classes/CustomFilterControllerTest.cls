@@ -780,4 +780,58 @@ private class CustomFilterControllerTest {
         System.assertEquals(null, value.value, 'Value should be null');
         System.assertEquals(null, value.checked, 'Checked should be null');
     }
+
+    @isTest
+    static void testGetDistinctTextFieldValues_DatabaseQuery() {
+        // This test ensures the Database.query execution path is covered
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        // Should have queried for all picklist filters
+        System.assertEquals(6, result.quickTurnFilters.size(), 'Should have 6 filters');
+
+        // Check that each filter executed its query
+        for (CustomFilterController.FilterWrapper filter : result.quickTurnFilters) {
+            System.assertNotEquals(null, filter.values, 'Each filter should have values list');
+        }
+    }
+
+    @isTest
+    static void testFilterValueWrapperCompareTo_AllBranches() {
+        CustomFilterController.FilterValueWrapper val1 = new CustomFilterController.FilterValueWrapper();
+        val1.label = 'Apple';
+
+        CustomFilterController.FilterValueWrapper val2 = new CustomFilterController.FilterValueWrapper();
+        val2.label = 'Banana';
+
+        CustomFilterController.FilterValueWrapper val3 = new CustomFilterController.FilterValueWrapper();
+        val3.label = 'Apple';
+
+        Test.startTest();
+        Integer result1 = val1.compareTo(val2); // Apple < Banana = -1
+        Integer result2 = val2.compareTo(val1); // Banana > Apple = 1
+        Integer result3 = val1.compareTo(val3); // Apple == Apple = 0
+        Test.stopTest();
+
+        System.assertEquals(-1, result1, 'Apple should be less than Banana');
+        System.assertEquals(1, result2, 'Banana should be greater than Apple');
+        System.assertEquals(0, result3, 'Apple should equal Apple');
+    }
+
+    @isTest
+    static void testEndUserFilterWithAccountEndUsers() {
+        Test.startTest();
+        // Test with includeAccountEndUsers = true to execute that branch
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', true);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result.myProductsFilters, 'Should have My Products filters');
+        System.assertNotEquals(null, result.accountName, 'Should have account name');
+
+        CustomFilterController.FilterWrapper endUserFilter = result.myProductsFilters[0];
+        System.assertNotEquals(null, endUserFilter.values, 'Should have end user values');
+    }
 }
