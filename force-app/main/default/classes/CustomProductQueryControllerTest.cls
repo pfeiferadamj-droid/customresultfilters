@@ -8,6 +8,7 @@ private class CustomProductQueryControllerTest {
     static void setupTestData() {
         // Create test products with required fields
         // Note: ProductClass is read-only and set by system based on product configuration
+        // Note: Shape__c, Profile__c, Panels__c, Structure__c, Visor__c may be restricted picklists
         List<Product2> products = new List<Product2>();
 
         // Create product 1 - marked as parent
@@ -18,25 +19,18 @@ private class CustomProductQueryControllerTest {
             IsActive = true,
             Is_Parent__c = 'Yes',
             Description = 'Test simple product description',
-            Shape__c = 'Round',
             Rush_Ready__c = true
         );
         products.add(simpleProduct);
 
-        // Create product 2 - marked as parent with QuickTurn filters
+        // Create product 2 - marked as parent
         Product2 variationParent = new Product2(
             Name = 'Test Variation Parent',
             ProductCode = 'TVP001',
             StockKeepingUnit = 'SKU-002',
             IsActive = true,
             Is_Parent__c = 'Yes',
-            Description = 'Test variation parent description',
-            Profile__c = 'Mid',
-            Panels__c = '6',
-            Structure__c = 'Structured',
-            Visor__c = 'Flat',
-            Shape__c = 'Fitted',
-            Special_Program_SAP__c = 'QuickTurnDDT'
+            Description = 'Test variation parent description'
         );
         products.add(variationParent);
 
@@ -47,8 +41,7 @@ private class CustomProductQueryControllerTest {
             StockKeepingUnit = 'SKU-003',
             IsActive = true,
             Is_Parent__c = 'Yes',
-            Rush_Ready__c = true,
-            Shape__c = 'Cap'
+            Rush_Ready__c = true
         );
         products.add(rushReadyProduct);
 
