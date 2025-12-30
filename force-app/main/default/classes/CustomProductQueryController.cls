@@ -314,25 +314,10 @@ public with sharing class CustomProductQueryController {
                 System.debug('  Adding parent restriction: Is_Parent__c = Yes');
             }
 
-            // Only apply category filter if there are Quick Turn-specific filters active
-            // (Shape, Profile, Panels, Structure, Visor, Special Programs)
-            // Skip category filter for search-only queries to be more permissive
-            Boolean hasQuickTurnSpecificFilters =
-                (profileValues != null && !profileValues.isEmpty()) ||
-                (panelsValues != null && !panelsValues.isEmpty()) ||
-                (structureValues != null && !structureValues.isEmpty()) ||
-                (visorValues != null && !visorValues.isEmpty()) ||
-                (shapeValues != null && !shapeValues.isEmpty()) ||
-                (specialPrograms != null && !specialPrograms.isEmpty());
-
-            if (hasQuickTurnSpecificFilters && String.isNotBlank(categoryId)) {
-                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
-                System.debug('  Adding category filter for: ' + categoryId);
-            } else if (!hasQuickTurnSpecificFilters) {
-                System.debug('  Skipping category filter - search-only query (no Quick Turn filters active)');
-            } else {
-                System.debug('  WARNING: Quick Turn filters active but no categoryId provided');
-            }
+            // Note: Category filter NOT applied for Quick Turn filtering
+            // Quick Turn filters (Shape, Profile, Panels, etc.) are already specific enough
+            // ProductCategoryProduct is often not fully populated, so category filter is too restrictive
+            System.debug('  Skipping category filter - Quick Turn filters are specific enough');
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -409,10 +394,7 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND Is_Parent__c = \'Yes\' ';
             }
 
-            // Apply same category filter logic as main query (only if Quick Turn filters are active)
-            if (hasQuickTurnSpecificFilters && String.isNotBlank(categoryId)) {
-                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
-            }
+            // Note: Category filter NOT applied (see main query comment above)
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
