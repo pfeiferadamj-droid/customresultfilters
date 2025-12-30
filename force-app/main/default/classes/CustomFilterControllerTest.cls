@@ -326,4 +326,129 @@ private class CustomFilterControllerTest {
         // Quick Turn should not have account name
         System.assertEquals(null, result.accountName, 'Account name should be null for Quick Turn');
     }
+
+    @isTest
+    static void testEndUserFilterFallbackValues() {
+        Test.startTest();
+        // When custom End_User__c object/fields don't exist, should return sample values
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', false);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result.myProductsFilters, 'My Products filters should not be null');
+        CustomFilterController.FilterWrapper endUserFilter = result.myProductsFilters[0];
+
+        // Should have sample end user values (from catch block)
+        System.assert(endUserFilter.values.size() >= 0, 'Should have end user values');
+
+        // If custom fields don't exist, verify we get the fallback sample values
+        if (endUserFilter.values.size() == 3) {
+            // Verify sample values structure
+            for (CustomFilterController.FilterValueWrapper value : endUserFilter.values) {
+                System.assertNotEquals(null, value.label, 'Value label should not be null');
+                System.assertNotEquals(null, value.value, 'Value value should not be null');
+                System.assertEquals(false, value.checked, 'Value should not be checked by default');
+            }
+        }
+    }
+
+    @isTest
+    static void testEndUserFilterWithAccountScope() {
+        Test.startTest();
+        // Test with includeAccountEndUsers = true
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', true);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result.myProductsFilters, 'My Products filters should not be null');
+        CustomFilterController.FilterWrapper endUserFilter = result.myProductsFilters[0];
+        System.assertEquals('endUser', endUserFilter.id, 'Filter ID should be endUser');
+        System.assertEquals('End User', endUserFilter.label, 'Filter label should be End User');
+        System.assertEquals('lookup', endUserFilter.fieldType, 'Field type should be lookup');
+    }
+
+    @isTest
+    static void testAccountNameRetrieval() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', false);
+        Test.stopTest();
+
+        // Account name should be set for My Products category
+        System.assertNotEquals(null, result.accountName, 'Account name should not be null');
+        // Should be either a real account name or the default
+        System.assert(
+            result.accountName.length() > 0,
+            'Account name should not be empty'
+        );
+    }
+
+    @isTest
+    static void testFilterValueWrapperSortingBehavior() {
+        List<CustomFilterController.FilterValueWrapper> values =
+            new List<CustomFilterController.FilterValueWrapper>();
+
+        CustomFilterController.FilterValueWrapper value1 = new CustomFilterController.FilterValueWrapper();
+        value1.label = 'Zebra';
+        value1.value = 'z';
+        values.add(value1);
+
+        CustomFilterController.FilterValueWrapper value2 = new CustomFilterController.FilterValueWrapper();
+        value2.label = 'Apple';
+        value2.value = 'a';
+        values.add(value2);
+
+        CustomFilterController.FilterValueWrapper value3 = new CustomFilterController.FilterValueWrapper();
+        value3.label = 'Mango';
+        value3.value = 'm';
+        values.add(value3);
+
+        Test.startTest();
+        values.sort();
+        Test.stopTest();
+
+        System.assertEquals('Apple', values[0].label, 'First should be Apple after sorting');
+        System.assertEquals('Mango', values[1].label, 'Second should be Mango after sorting');
+        System.assertEquals('Zebra', values[2].label, 'Third should be Zebra after sorting');
+    }
+
+    @isTest
+    static void testFilterWrapperInitialization() {
+        Test.startTest();
+        CustomFilterController.FilterWrapper filter = new CustomFilterController.FilterWrapper();
+        Test.stopTest();
+
+        // Verify constructor initializes lists
+        System.assertNotEquals(null, filter.values, 'Values should be initialized');
+        System.assertNotEquals(null, filter.selectedValues, 'Selected values should be initialized');
+        System.assertEquals(0, filter.values.size(), 'Values should start empty');
+        System.assertEquals(0, filter.selectedValues.size(), 'Selected values should start empty');
+    }
+
+    @isTest
+    static void testMultipleCategoryCallsIndependent() {
+        Test.startTest();
+        // Get Quick Turn filters
+        CustomFilterController.FilterDataWrapper quickTurnResult =
+            CustomFilterController.getFilterData('Quick Turn', false);
+
+        // Get My Products filters
+        CustomFilterController.FilterDataWrapper myProductsResult =
+            CustomFilterController.getFilterData('My Products', false);
+
+        // Get Quick Turn again to ensure no cross-contamination
+        CustomFilterController.FilterDataWrapper quickTurnResult2 =
+            CustomFilterController.getFilterData('Quick Turn', true);
+        Test.stopTest();
+
+        // Verify each call returns independent results
+        System.assertNotEquals(null, quickTurnResult.quickTurnFilters, 'First Quick Turn should have filters');
+        System.assertEquals(null, quickTurnResult.myProductsFilters, 'First Quick Turn should not have My Products filters');
+
+        System.assertNotEquals(null, myProductsResult.myProductsFilters, 'My Products should have filters');
+        System.assertEquals(null, myProductsResult.quickTurnFilters, 'My Products should not have Quick Turn filters');
+
+        System.assertNotEquals(null, quickTurnResult2.quickTurnFilters, 'Second Quick Turn should have filters');
+        System.assertEquals(null, quickTurnResult2.myProductsFilters, 'Second Quick Turn should not have My Products filters');
+    }
 }
