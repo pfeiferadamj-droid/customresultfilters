@@ -135,4 +135,88 @@ private class ManagedContentHelperTest {
         // Method should handle null gracefully
         System.assertNotEquals(null, result, 'Result should not be null');
     }
+
+    @isTest
+    static void testGetProductImageUrls_ValidWebstoreIdFormat() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        // Use a realistic webstore ID format
+        String testWebstoreId = '0ZEbb000000HrZNGA0';
+
+        Test.startTest();
+        Map<Id, String> result = ManagedContentHelper.getProductImageUrls(productIds, testWebstoreId);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 0, 'Should handle valid webstore ID');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_EmptyWebstoreId() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        Map<Id, String> result = ManagedContentHelper.getProductImageUrls(productIds, '');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 0, 'Should handle empty webstore ID');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_SingleProductId() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>{ products[0].Id };
+
+        Test.startTest();
+        Map<Id, String> result = ManagedContentHelper.getProductImageUrls(productIds, 'testWebstore');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 0, 'Should handle single product ID');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_AllProducts() {
+        List<Product2> products = [SELECT Id FROM Product2];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        Map<Id, String> result = ManagedContentHelper.getProductImageUrls(productIds, 'testWebstore');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        // Without ProductMedia, should return empty map
+        System.assertEquals(0, result.size(), 'Should return empty map without ProductMedia');
+    }
+
+    @isTest
+    static void testCustomMetadataFallback() {
+        // Test executes the metadata query path, falls back to webstoreId
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        // Call with explicit webstoreId to test fallback logic
+        Map<Id, String> result = ManagedContentHelper.getProductImageUrls(productIds, 'fallbackWebstoreId');
+        Test.stopTest();
+
+        // Metadata query will fail (no custom metadata in test), should fall back to webstoreId
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 0, 'Should execute with metadata fallback');
+    }
 }

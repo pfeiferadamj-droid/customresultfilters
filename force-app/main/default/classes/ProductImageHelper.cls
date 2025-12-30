@@ -23,6 +23,12 @@ public without sharing class ProductImageHelper {
     public static Map<Id, String> getProductImageUrls(List<Id> productIds, String webstoreId) {
         Map<Id, String> productImageMap = new Map<Id, String>();
 
+        // Handle null or empty productIds
+        if (productIds == null || productIds.isEmpty()) {
+            System.debug('ProductImageHelper: No product IDs provided');
+            return productImageMap;
+        }
+
         String orgId = UserInfo.getOrganizationId();
         String basePath = '/shop/sfsites/c';
 
