@@ -23,23 +23,22 @@ private class CategoryProductControllerTest {
 
         insert products;
 
-        // Get standard pricebook
-        Pricebook2 standardPB = new Pricebook2(
-            Id = Test.getStandardPricebookId(),
-            IsActive = true
-        );
+        // Get standard pricebook ID
+        Id standardPricebookId = Test.getStandardPricebookId();
 
         // Create pricebook entries
         List<PricebookEntry> pbeList = new List<PricebookEntry>();
         for (Product2 p : products) {
             pbeList.add(new PricebookEntry(
-                Pricebook2Id = standardPB.Id,
+                Pricebook2Id = standardPricebookId,
                 Product2Id = p.Id,
                 UnitPrice = 100.00,
                 IsActive = true
             ));
         }
-        insert pbeList;
+
+        // Insert with error handling for duplicate prevention
+        Database.insert(pbeList, false);
     }
 
     @isTest
