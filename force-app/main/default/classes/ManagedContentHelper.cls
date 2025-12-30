@@ -3,6 +3,12 @@ public without sharing class ManagedContentHelper {
     public static Map<Id, String> getProductImageUrls(List<Id> productIds, String webstoreId) {
         Map<Id, String> productImageMap = new Map<Id, String>();
 
+        // Handle null or empty productIds
+        if (productIds == null || productIds.isEmpty()) {
+            System.debug('ManagedContentHelper: No product IDs provided');
+            return productImageMap;
+        }
+
         String orgId = UserInfo.getOrganizationId();
         String basePath = '/shop/sfsites/c';
 
@@ -46,10 +52,11 @@ public without sharing class ManagedContentHelper {
             // Build image URLs using cached ContentKey
             for (ProductMedia pm : mediaList) {
                 if (!productImageMap.containsKey(pm.ProductId) && String.isNotBlank(pm.ContentKey__c)) {
-                    String imageUrl = basePath + '/cms/delivery/media/' + pm.ContentKey__c +
-                                     '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
-                    productImageMap.put(pm.ProductId, imageUrl);
-                    System.debug('SUCCESS: Built URL for Product ' + pm.ProductId + ' using cached ContentKey: ' + imageUrl);
+                    String imageUrl = buildImageUrl(pm.ContentKey__c, channelId, orgId);
+                    if (imageUrl != null) {
+                        productImageMap.put(pm.ProductId, imageUrl);
+                        System.debug('SUCCESS: Built URL for Product ' + pm.ProductId + ' using cached ContentKey: ' + imageUrl);
+                    }
                 }
             }
 
@@ -63,5 +70,22 @@ public without sharing class ManagedContentHelper {
         }
 
         return productImageMap;
+    }
+
+    /**
+     * Helper method to build image URL from ContentKey
+     * @param contentKey The content key from ProductMedia
+     * @param channelId The channel ID (from metadata or webstore)
+     * @param orgId The organization ID
+     * @return The complete image URL
+     */
+    @TestVisible
+    private static String buildImageUrl(String contentKey, String channelId, String orgId) {
+        if (String.isBlank(contentKey)) {
+            return null;
+        }
+        String basePath = '/shop/sfsites/c';
+        return basePath + '/cms/delivery/media/' + contentKey +
+               '?version=1.1&channelId=' + channelId + '&oid=' + orgId;
     }
 }

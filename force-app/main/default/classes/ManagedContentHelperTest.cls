@@ -358,4 +358,63 @@ private class ManagedContentHelperTest {
         System.assertEquals(0, result2.size(), 'Second call should return empty');
         System.assertEquals(0, result3.size(), 'Third call should return empty');
     }
+
+    @isTest
+    static void testBuildImageUrl() {
+        String contentKey = 'MCJ52R56QITEZRQOJXG7DHYWTIBI';
+        String channelId = '0ZEbb000000HrZNGA0';
+        String orgId = '00D1234567890123';
+
+        Test.startTest();
+        String url = ManagedContentHelper.buildImageUrl(contentKey, channelId, orgId);
+        Test.stopTest();
+
+        System.assertNotEquals(null, url, 'URL should not be null');
+        System.assert(url.contains('/shop/sfsites/c/cms/delivery/media/'), 'Should contain base path');
+        System.assert(url.contains(contentKey), 'Should contain content key');
+        System.assert(url.contains('version=1.1'), 'Should contain version parameter');
+        System.assert(url.contains('channelId=' + channelId), 'Should contain channelId');
+        System.assert(url.contains('oid=' + orgId), 'Should contain orgId');
+    }
+
+    @isTest
+    static void testBuildImageUrl_NullContentKey() {
+        Test.startTest();
+        String url = ManagedContentHelper.buildImageUrl(null, 'channel', 'org');
+        Test.stopTest();
+
+        System.assertEquals(null, url, 'Should return null for null content key');
+    }
+
+    @isTest
+    static void testBuildImageUrl_EmptyContentKey() {
+        Test.startTest();
+        String url = ManagedContentHelper.buildImageUrl('', 'channel', 'org');
+        Test.stopTest();
+
+        System.assertEquals(null, url, 'Should return null for empty content key');
+    }
+
+    @isTest
+    static void testBuildImageUrl_ValidParameters() {
+        Test.startTest();
+        String url = ManagedContentHelper.buildImageUrl('KEY123', 'CHANNEL456', 'ORG789');
+        Test.stopTest();
+
+        System.assertNotEquals(null, url, 'URL should not be null');
+        System.assert(url.contains('KEY123'), 'Should contain content key');
+        System.assert(url.contains('CHANNEL456'), 'Should contain channel ID');
+        System.assert(url.contains('ORG789'), 'Should contain org ID');
+    }
+
+    @isTest
+    static void testBuildImageUrl_NullChannelAndOrg() {
+        Test.startTest();
+        String url = ManagedContentHelper.buildImageUrl('VALIDKEY', null, null);
+        Test.stopTest();
+
+        // Should still build URL even with null channel/org (they'll be null in URL params)
+        System.assertNotEquals(null, url, 'Should build URL with null channel/org');
+        System.assert(url.contains('VALIDKEY'), 'Should contain content key');
+    }
 }

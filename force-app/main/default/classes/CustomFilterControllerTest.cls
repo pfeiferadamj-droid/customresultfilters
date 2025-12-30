@@ -732,4 +732,52 @@ private class CustomFilterControllerTest {
             }
         }
     }
+
+    @isTest
+    static void testCreateFilterValue_DirectTest() {
+        Test.startTest();
+        CustomFilterController.FilterValueWrapper value =
+            CustomFilterController.createFilterValue('Test Label', 'testValue', true);
+        Test.stopTest();
+
+        System.assertEquals('Test Label', value.label, 'Label should match');
+        System.assertEquals('testValue', value.value, 'Value should match');
+        System.assertEquals(true, value.checked, 'Checked should be true');
+    }
+
+    @isTest
+    static void testCreateFilterValue_Unchecked() {
+        Test.startTest();
+        CustomFilterController.FilterValueWrapper value =
+            CustomFilterController.createFilterValue('Another Label', 'anotherValue', false);
+        Test.stopTest();
+
+        System.assertEquals('Another Label', value.label, 'Label should match');
+        System.assertEquals('anotherValue', value.value, 'Value should match');
+        System.assertEquals(false, value.checked, 'Checked should be false');
+    }
+
+    @isTest
+    static void testCreateFilterValue_EmptyStrings() {
+        Test.startTest();
+        CustomFilterController.FilterValueWrapper value =
+            CustomFilterController.createFilterValue('', '', false);
+        Test.stopTest();
+
+        System.assertEquals('', value.label, 'Label should be empty string');
+        System.assertEquals('', value.value, 'Value should be empty string');
+        System.assertEquals(false, value.checked, 'Checked should be false');
+    }
+
+    @isTest
+    static void testCreateFilterValue_NullValues() {
+        Test.startTest();
+        CustomFilterController.FilterValueWrapper value =
+            CustomFilterController.createFilterValue(null, null, null);
+        Test.stopTest();
+
+        System.assertEquals(null, value.label, 'Label should be null');
+        System.assertEquals(null, value.value, 'Value should be null');
+        System.assertEquals(null, value.checked, 'Checked should be null');
+    }
 }

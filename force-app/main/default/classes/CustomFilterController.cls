@@ -317,6 +317,7 @@ public with sharing class CustomFilterController {
     /**
      * Helper method to create a filter value
      */
+    @TestVisible
     private static FilterValueWrapper createFilterValue(String label, String value, Boolean checked) {
         FilterValueWrapper filterValue = new FilterValueWrapper();
         filterValue.label = label;
