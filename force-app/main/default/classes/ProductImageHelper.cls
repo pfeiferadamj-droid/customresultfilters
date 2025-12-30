@@ -204,4 +204,65 @@ public without sharing class ProductImageHelper {
         System.debug('ProductImageHelper: Returning ' + productImageMap.size() + ' image URLs');
         return productImageMap;
     }
+
+    /**
+     * Helper method to build Content Version URL
+     * @param contentDocumentId The ContentDocument ID
+     * @param electronicMediaId The ContentVersion ID
+     * @return The URL string
+     */
+    @TestVisible
+    private static String buildContentVersionUrl(String contentDocumentId, String electronicMediaId) {
+        if (String.isBlank(contentDocumentId) || String.isBlank(electronicMediaId)) {
+            return null;
+        }
+        return '/sfc/servlet.shepherd/version/renditionDownload?rendition=ORIGINAL_' +
+               contentDocumentId.substring(0, 3) + '&versionId=' + electronicMediaId;
+    }
+
+    /**
+     * Helper method to build Managed Content URL
+     * @param contentKey The content key from ManagedContent
+     * @param webstoreId The webstore ID
+     * @param orgId The organization ID
+     * @return The URL string
+     */
+    @TestVisible
+    private static String buildManagedContentUrl(String contentKey, String webstoreId, String orgId) {
+        if (String.isBlank(contentKey)) {
+            return null;
+        }
+        String basePath = '/shop/sfsites/c';
+        return basePath + '/cms/delivery/media/' + contentKey +
+               '?channelId=' + webstoreId + '&oid=' + orgId;
+    }
+
+    /**
+     * Helper method to determine content type from ElectronicMediaId
+     * @param electronicMediaId The ID to check
+     * @return The object type (ContentVersion, ManagedContentVariant, ManagedContent, or Unknown)
+     */
+    @TestVisible
+    private static String determineContentType(String electronicMediaId) {
+        if (String.isBlank(electronicMediaId)) {
+            return 'Unknown';
+        }
+
+        // ContentVersion IDs start with '068'
+        if (electronicMediaId.startsWith('068')) {
+            return 'ContentVersion';
+        }
+
+        // ManagedContentVariant IDs start with '0Qy'
+        if (electronicMediaId.startsWith('0Qy')) {
+            return 'ManagedContentVariant';
+        }
+
+        // ManagedContent IDs start with '0Qx'
+        if (electronicMediaId.startsWith('0Qx')) {
+            return 'ManagedContent';
+        }
+
+        return 'Unknown';
+    }
 }

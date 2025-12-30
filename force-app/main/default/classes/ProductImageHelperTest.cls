@@ -308,4 +308,155 @@ private class ProductImageHelperTest {
         System.assertNotEquals(null, result, 'Result should not be null');
         System.assertEquals(0, result.size(), 'Should return empty without ProductMedia');
     }
+
+    @isTest
+    static void testBuildContentVersionUrl() {
+        Test.startTest();
+        String url = ProductImageHelper.buildContentVersionUrl('0681234567890123456', '0681234567890123457');
+        Test.stopTest();
+
+        System.assertNotEquals(null, url, 'URL should not be null');
+        System.assert(url.contains('/sfc/servlet.shepherd/version/renditionDownload'), 'Should contain servlet path');
+        System.assert(url.contains('ORIGINAL_068'), 'Should contain ORIGINAL_ prefix with first 3 chars');
+        System.assert(url.contains('versionId=0681234567890123457'), 'Should contain versionId parameter');
+    }
+
+    @isTest
+    static void testBuildContentVersionUrl_NullInputs() {
+        Test.startTest();
+        String url1 = ProductImageHelper.buildContentVersionUrl(null, '0681234567890123457');
+        String url2 = ProductImageHelper.buildContentVersionUrl('0681234567890123456', null);
+        String url3 = ProductImageHelper.buildContentVersionUrl(null, null);
+        Test.stopTest();
+
+        System.assertEquals(null, url1, 'Should return null for null contentDocumentId');
+        System.assertEquals(null, url2, 'Should return null for null electronicMediaId');
+        System.assertEquals(null, url3, 'Should return null for both null');
+    }
+
+    @isTest
+    static void testBuildContentVersionUrl_EmptyStrings() {
+        Test.startTest();
+        String url1 = ProductImageHelper.buildContentVersionUrl('', '0681234567890123457');
+        String url2 = ProductImageHelper.buildContentVersionUrl('0681234567890123456', '');
+        String url3 = ProductImageHelper.buildContentVersionUrl('', '');
+        Test.stopTest();
+
+        System.assertEquals(null, url1, 'Should return null for empty contentDocumentId');
+        System.assertEquals(null, url2, 'Should return null for empty electronicMediaId');
+        System.assertEquals(null, url3, 'Should return null for both empty');
+    }
+
+    @isTest
+    static void testBuildManagedContentUrl() {
+        String testContentKey = 'MCJ52R56QITEZRQOJXG7DHYWTIBI';
+        String testWebstoreId = '0ZEbb000000HrZNGA0';
+        String testOrgId = '00D1234567890123';
+
+        Test.startTest();
+        String url = ProductImageHelper.buildManagedContentUrl(testContentKey, testWebstoreId, testOrgId);
+        Test.stopTest();
+
+        System.assertNotEquals(null, url, 'URL should not be null');
+        System.assert(url.contains('/shop/sfsites/c/cms/delivery/media/'), 'Should contain CMS delivery path');
+        System.assert(url.contains(testContentKey), 'Should contain content key');
+        System.assert(url.contains('channelId=' + testWebstoreId), 'Should contain channelId parameter');
+        System.assert(url.contains('oid=' + testOrgId), 'Should contain oid parameter');
+    }
+
+    @isTest
+    static void testBuildManagedContentUrl_NullContentKey() {
+        Test.startTest();
+        String url = ProductImageHelper.buildManagedContentUrl(null, 'testWebstore', 'testOrg');
+        Test.stopTest();
+
+        System.assertEquals(null, url, 'Should return null for null content key');
+    }
+
+    @isTest
+    static void testBuildManagedContentUrl_EmptyContentKey() {
+        Test.startTest();
+        String url = ProductImageHelper.buildManagedContentUrl('', 'testWebstore', 'testOrg');
+        Test.stopTest();
+
+        System.assertEquals(null, url, 'Should return null for empty content key');
+    }
+
+    @isTest
+    static void testBuildManagedContentUrl_ValidInputs() {
+        Test.startTest();
+        String url = ProductImageHelper.buildManagedContentUrl('CONTENTKEY123', 'store456', 'org789');
+        Test.stopTest();
+
+        System.assertNotEquals(null, url, 'URL should not be null');
+        System.assert(url.contains('CONTENTKEY123'), 'Should contain content key');
+        System.assert(url.contains('store456'), 'Should contain webstore ID');
+        System.assert(url.contains('org789'), 'Should contain org ID');
+    }
+
+    @isTest
+    static void testDetermineContentType_ContentVersion() {
+        Test.startTest();
+        String type = ProductImageHelper.determineContentType('0681234567890123456');
+        Test.stopTest();
+
+        System.assertEquals('ContentVersion', type, 'Should identify ContentVersion ID');
+    }
+
+    @isTest
+    static void testDetermineContentType_ManagedContentVariant() {
+        Test.startTest();
+        String type = ProductImageHelper.determineContentType('0Qy1234567890123456');
+        Test.stopTest();
+
+        System.assertEquals('ManagedContentVariant', type, 'Should identify ManagedContentVariant ID');
+    }
+
+    @isTest
+    static void testDetermineContentType_ManagedContent() {
+        Test.startTest();
+        String type = ProductImageHelper.determineContentType('0Qx1234567890123456');
+        Test.stopTest();
+
+        System.assertEquals('ManagedContent', type, 'Should identify ManagedContent ID');
+    }
+
+    @isTest
+    static void testDetermineContentType_Unknown() {
+        Test.startTest();
+        String type1 = ProductImageHelper.determineContentType('0011234567890123456');
+        String type2 = ProductImageHelper.determineContentType('a011234567890123456');
+        Test.stopTest();
+
+        System.assertEquals('Unknown', type1, 'Should return Unknown for Account ID');
+        System.assertEquals('Unknown', type2, 'Should return Unknown for Contact ID');
+    }
+
+    @isTest
+    static void testDetermineContentType_NullOrEmpty() {
+        Test.startTest();
+        String type1 = ProductImageHelper.determineContentType(null);
+        String type2 = ProductImageHelper.determineContentType('');
+        Test.stopTest();
+
+        System.assertEquals('Unknown', type1, 'Should return Unknown for null');
+        System.assertEquals('Unknown', type2, 'Should return Unknown for empty string');
+    }
+
+    @isTest
+    static void testAllHelperMethods() {
+        Test.startTest();
+        // Test all helper methods work together
+        String contentType1 = ProductImageHelper.determineContentType('0681234567890123456');
+        String contentType2 = ProductImageHelper.determineContentType('0Qy1234567890123456');
+
+        String cvUrl = ProductImageHelper.buildContentVersionUrl('0691234567890123456', '0681234567890123456');
+        String mcUrl = ProductImageHelper.buildManagedContentUrl('CONTENTKEY', 'webstore', 'orgId');
+        Test.stopTest();
+
+        System.assertEquals('ContentVersion', contentType1, 'Should identify ContentVersion');
+        System.assertEquals('ManagedContentVariant', contentType2, 'Should identify ManagedContentVariant');
+        System.assertNotEquals(null, cvUrl, 'ContentVersion URL should not be null');
+        System.assertNotEquals(null, mcUrl, 'ManagedContent URL should not be null');
+    }
 }
