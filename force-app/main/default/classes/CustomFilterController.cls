@@ -260,8 +260,9 @@ public with sharing class CustomFilterController {
 
             if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
-                query += 'Account__c = :accountId AND End_User__c != null';
-                System.debug('Querying by Account: ' + accountId);
+                // Query through Contact relationship since products are associated with Contacts
+                query += 'Contact__c IN (SELECT Id FROM Contact WHERE AccountId = :accountId) AND End_User__c != null';
+                System.debug('Querying by Account via Contacts: ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
                 query += 'Contact__c = :contactId AND End_User__c != null';
