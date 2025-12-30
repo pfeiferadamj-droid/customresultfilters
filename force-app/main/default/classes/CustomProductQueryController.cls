@@ -83,9 +83,13 @@ public with sharing class CustomProductQueryController {
                 System.debug('  Adding product code search: ' + productCode);
             }
 
-            // Note: Category filter not applied for End User filtering
-            // My Products category should show all products for the selected end user
-            // regardless of category assignment in ProductCategoryProduct
+            // Add category filter to ensure products are only from My Products category
+            if (String.isNotBlank(categoryId)) {
+                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                System.debug('  Adding category filter for: ' + categoryId);
+            } else {
+                System.debug('  WARNING: No categoryId provided - will return all products for end user');
+            }
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -132,7 +136,10 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND (Name LIKE :productCodePattern OR ProductCode LIKE :productCodePattern OR StockKeepingUnit LIKE :productCodePattern) ';
             }
 
-            // Note: Category filter not applied (see main query comment above)
+            // Add category filter to count query
+            if (String.isNotBlank(categoryId)) {
+                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+            }
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
@@ -313,9 +320,13 @@ public with sharing class CustomProductQueryController {
                 System.debug('  Adding parent restriction: Is_Parent__c = Yes');
             }
 
-            // Note: Category filter not applied for Quick Turn filtering
-            // Users are already on the Quick Turn category page, and the specific
-            // filters (Shape, Profile, etc.) naturally filter to Quick Turn products
+            // Add category filter to ensure products are only from the specified category
+            if (String.isNotBlank(categoryId)) {
+                query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+                System.debug('  Adding category filter for: ' + categoryId);
+            } else {
+                System.debug('  WARNING: No categoryId provided - search will return products from all categories');
+            }
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -392,7 +403,10 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND Is_Parent__c = \'Yes\' ';
             }
 
-            // Note: Category filter not applied (see main query comment above)
+            // Add category filter to count query
+            if (String.isNotBlank(categoryId)) {
+                countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
+            }
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);
