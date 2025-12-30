@@ -8,9 +8,7 @@ export default class CustomFilterPanel extends LightningElement {
     @api category;
     @api isMyProducts = false;
     @api accountName = 'your account';
-
-    // Track whether to show all account end users (My Products only)
-    @track showAllAccountEndUsers = false;
+    @api showAllAccountEndUsers = false;
 
     // Internal filters with selected values
     @track _filters = [];
@@ -161,14 +159,14 @@ export default class CustomFilterPanel extends LightningElement {
      * Handle end user scope toggle (My Products category only)
      */
     handleEndUserScopeToggle(event) {
-        this.showAllAccountEndUsers = event.target.checked;
+        const checked = event.target.checked;
 
-        // Dispatch to parent
+        // Dispatch to parent (parent will update the prop)
         this.dispatchEvent(new CustomEvent('enduserscope', {
             bubbles: true,
             composed: true,
             detail: {
-                checked: this.showAllAccountEndUsers
+                checked: checked
             }
         }));
     }

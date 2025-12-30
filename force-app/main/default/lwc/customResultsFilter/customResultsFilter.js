@@ -22,6 +22,9 @@ export default class CustomResultsFilter extends LightningElement {
     error;
     isLoading = true;
 
+    // My Products end user scope (show all account end users vs just user's products)
+    showAllAccountEndUsers = false;
+
     // Lightning Message Service context
     @wire(MessageContext)
     messageContext;
@@ -129,7 +132,10 @@ export default class CustomResultsFilter extends LightningElement {
 
         console.log('customResultsFilter: Loading filter data for category:', this.currentCategory);
         this.isLoading = true;
-        getFilterData({ category: this.currentCategory })
+        getFilterData({
+            category: this.currentCategory,
+            includeAccountEndUsers: this.showAllAccountEndUsers
+        })
             .then(result => {
                 console.log('customResultsFilter: Received filter data:', result);
                 this.filterData = result;
@@ -248,23 +254,10 @@ export default class CustomResultsFilter extends LightningElement {
      * Handle end user scope toggle (My Products only)
      */
     handleEndUserScopeToggle(event) {
-        const showAllAccountEndUsers = event.detail.checked;
+        this.showAllAccountEndUsers = event.detail.checked;
+        console.log('End user scope toggled to:', this.showAllAccountEndUsers);
 
         // Reload filter data with new scope
-        this.isLoading = true;
-        getFilterData({
-            category: this.currentCategory,
-            includeAccountEndUsers: showAllAccountEndUsers
-        })
-            .then(result => {
-                this.filterData = result;
-                this.error = undefined;
-                this.isLoading = false;
-            })
-            .catch(error => {
-                this.error = error;
-                this.isLoading = false;
-                console.error('Error loading filter data:', error);
-            });
+        this.loadFilterData();
     }
 }
