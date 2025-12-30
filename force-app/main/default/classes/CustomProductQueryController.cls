@@ -79,11 +79,9 @@ public with sharing class CustomProductQueryController {
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ';
 
-            // Add parent restriction if needed
-            if (restrictToParents != null && restrictToParents) {
-                query += 'AND Is_Parent__c = \'Yes\' ';
-                System.debug('  Adding parent restriction: Is_Parent__c = Yes');
-            }
+            // Note: Parent restriction NOT applied for My Products end user filtering
+            // We want to show ALL products for the selected end user(s), including child products
+            System.debug('  Skipping parent restriction - My Products shows all products for end user');
 
             // Add product code search if provided
             if (String.isNotBlank(productCode)) {
@@ -136,10 +134,7 @@ public with sharing class CustomProductQueryController {
                                'WHERE IsActive = true ' +
                                'AND End_User__c IN :endUserIds ';
 
-            // Add parent restriction to count query
-            if (restrictToParents != null && restrictToParents) {
-                countQuery += 'AND Is_Parent__c = \'Yes\' ';
-            }
+            // Note: Parent restriction NOT applied (see main query comment above)
 
             // Add product code search to count query
             if (String.isNotBlank(productCode)) {
