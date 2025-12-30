@@ -44,18 +44,10 @@ public with sharing class CustomFilterController {
 
     /**
      * Get Quick Turn category filters
-     * Ordered: Search, Special Programs, Panels, Profile, Shape, Structure, Visor
+     * Ordered: Special Programs, Panels, Profile, Shape, Structure, Visor
      */
     private static List<FilterWrapper> getQuickTurnFilters() {
         List<FilterWrapper> filters = new List<FilterWrapper>();
-
-        // Search Filter (renamed from Product Code)
-        FilterWrapper searchFilter = new FilterWrapper();
-        searchFilter.id = 'productCode';
-        searchFilter.label = 'Search';
-        searchFilter.fieldType = 'text';
-        searchFilter.values = new List<FilterValueWrapper>();
-        filters.add(searchFilter);
 
         // Special Programs Filter (includes Dri-Duck and Rush Ready)
         FilterWrapper specialProgramsFilter = new FilterWrapper();
@@ -121,19 +113,11 @@ public with sharing class CustomFilterController {
 
     /**
      * Get My Products category filters
-     * Includes: Search, End User
+     * Includes: End User
      * @param includeAccountEndUsers Whether to include all account end users or just user's products
      */
     private static List<FilterWrapper> getMyProductsFilters(Boolean includeAccountEndUsers) {
         List<FilterWrapper> filters = new List<FilterWrapper>();
-
-        // Search Filter
-        FilterWrapper searchFilter = new FilterWrapper();
-        searchFilter.id = 'productCode';
-        searchFilter.label = 'Search';
-        searchFilter.fieldType = 'text';
-        searchFilter.values = new List<FilterValueWrapper>();
-        filters.add(searchFilter);
 
         // End User Filter
         FilterWrapper endUserFilter = new FilterWrapper();
