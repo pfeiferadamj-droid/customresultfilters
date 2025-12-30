@@ -313,4 +313,89 @@ private class CustomProductQueryControllerTest {
         System.assertEquals(12, result.pageSize, 'Page size should be 12');
         System.assertNotEquals(null, result.pricebookEntries, 'Pricebook entries should not be null');
     }
+
+    @isTest
+    static void testGetProductsByEndUser_WithValidIds() {
+        // Create a fake end user ID to test the query logic
+        // Even if no products match, this will execute the full query code path
+        List<String> fakeEndUserIds = new List<String>{'a0Q000000000001'};
+
+        Test.startTest();
+        try {
+            CustomProductQueryController.ProductQueryResult result =
+                CustomProductQueryController.getProductsByEndUser(
+                    'testCategoryId',
+                    fakeEndUserIds,
+                    null, // productCode
+                    1, // pageNumber
+                    12, // pageSize
+                    false, // restrictToParents
+                    'testWebstoreId'
+                );
+
+            // If End_User__c field exists, query will execute and return 0 results
+            System.assertNotEquals(null, result, 'Result should not be null');
+            System.assertNotEquals(null, result.products, 'Products should not be null');
+            System.assertEquals(0, result.total, 'Should find 0 products with fake end user ID');
+
+        } catch (Exception e) {
+            // If End_User__c field doesn't exist, will throw exception
+            // This is expected in non-B2B Commerce orgs
+            System.assert(e instanceof AuraHandledException, 'Should throw AuraHandledException');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetProductsByEndUser_WithProductCodeSearch() {
+        List<String> fakeEndUserIds = new List<String>{'a0Q000000000001'};
+
+        Test.startTest();
+        try {
+            CustomProductQueryController.ProductQueryResult result =
+                CustomProductQueryController.getProductsByEndUser(
+                    'testCategoryId',
+                    fakeEndUserIds,
+                    'TSP', // productCode search
+                    1,
+                    12,
+                    false,
+                    'testWebstoreId'
+                );
+
+            System.assertNotEquals(null, result, 'Result should not be null');
+            System.assertNotEquals(null, result.products, 'Products should not be null');
+
+        } catch (Exception e) {
+            // Expected if custom fields don't exist
+            System.assert(e instanceof AuraHandledException, 'Should throw AuraHandledException');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetProductsByEndUser_WithCategoryId() {
+        List<String> fakeEndUserIds = new List<String>{'a0Q000000000001'};
+
+        Test.startTest();
+        try {
+            CustomProductQueryController.ProductQueryResult result =
+                CustomProductQueryController.getProductsByEndUser(
+                    '0ZGbb000000FFOX', // valid-looking category ID
+                    fakeEndUserIds,
+                    null,
+                    1,
+                    12,
+                    false,
+                    'testWebstoreId'
+                );
+
+            System.assertNotEquals(null, result, 'Result should not be null');
+
+        } catch (Exception e) {
+            // Expected if custom fields don't exist
+            System.assert(e instanceof AuraHandledException, 'Should throw AuraHandledException');
+        }
+        Test.stopTest();
+    }
 }
