@@ -7,15 +7,15 @@ private class CustomProductQueryControllerTest {
     @TestSetup
     static void setupTestData() {
         // Create test products with required fields
+        // Note: ProductClass is read-only and set by system based on product configuration
         List<Product2> products = new List<Product2>();
 
-        // Create Simple product
+        // Create product 1 - marked as parent
         Product2 simpleProduct = new Product2(
             Name = 'Test Simple Product',
             ProductCode = 'TSP001',
             StockKeepingUnit = 'SKU-001',
             IsActive = true,
-            ProductClass = 'Simple',
             Is_Parent__c = 'Yes',
             Description = 'Test simple product description',
             Shape__c = 'Round',
@@ -23,13 +23,12 @@ private class CustomProductQueryControllerTest {
         );
         products.add(simpleProduct);
 
-        // Create Variation Parent product
+        // Create product 2 - marked as parent with QuickTurn filters
         Product2 variationParent = new Product2(
             Name = 'Test Variation Parent',
             ProductCode = 'TVP001',
             StockKeepingUnit = 'SKU-002',
             IsActive = true,
-            ProductClass = 'VariationParent',
             Is_Parent__c = 'Yes',
             Description = 'Test variation parent description',
             Profile__c = 'Mid',
@@ -41,13 +40,12 @@ private class CustomProductQueryControllerTest {
         );
         products.add(variationParent);
 
-        // Create product with Rush Ready
+        // Create product 3 - Rush Ready
         Product2 rushReadyProduct = new Product2(
             Name = 'Rush Ready Product',
             ProductCode = 'RRP001',
             StockKeepingUnit = 'SKU-003',
             IsActive = true,
-            ProductClass = 'Simple',
             Is_Parent__c = 'Yes',
             Rush_Ready__c = true,
             Shape__c = 'Cap'
