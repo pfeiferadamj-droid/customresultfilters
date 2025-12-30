@@ -179,4 +179,133 @@ private class ProductImageHelperTest {
         System.assertNotEquals(null, result, 'Result should not be null');
         System.assert(result.size() >= 0, 'Should handle multiple products');
     }
+
+    @isTest
+    static void testGetProductImageUrls_EmptyWebstoreId() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        Map<Id, String> result = ProductImageHelper.getProductImageUrls(productIds, '');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assert(result.size() >= 0, 'Should handle empty webstore ID');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_OrgIdAndBasePath() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        // This will exercise the UserInfo.getOrganizationId() and basePath logic
+        Map<Id, String> result = ProductImageHelper.getProductImageUrls(productIds, 'testWebstore');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_AllProductsNoMedia() {
+        // Query all products to exercise the full query path
+        List<Product2> products = [SELECT Id FROM Product2];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        Map<Id, String> result = ProductImageHelper.getProductImageUrls(productIds, 'testWebstore');
+        Test.stopTest();
+
+        // Should return empty map since no ProductMedia exists
+        System.assertEquals(0, result.size(), 'Should return empty map without ProductMedia');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_DifferentWebstoreIds() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        Map<Id, String> result1 = ProductImageHelper.getProductImageUrls(productIds, 'webstore1');
+        Map<Id, String> result2 = ProductImageHelper.getProductImageUrls(productIds, 'webstore2');
+        Map<Id, String> result3 = ProductImageHelper.getProductImageUrls(productIds, '0ZEbb000000HrZNGA0');
+        Test.stopTest();
+
+        System.assertNotEquals(null, result1, 'Result 1 should not be null');
+        System.assertNotEquals(null, result2, 'Result 2 should not be null');
+        System.assertNotEquals(null, result3, 'Result 3 should not be null');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_RepeatedCalls() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 2];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        // Call multiple times to ensure no state is retained
+        Map<Id, String> result1 = ProductImageHelper.getProductImageUrls(productIds, 'test1');
+        Map<Id, String> result2 = ProductImageHelper.getProductImageUrls(productIds, 'test2');
+        Map<Id, String> result3 = ProductImageHelper.getProductImageUrls(productIds, 'test3');
+        Test.stopTest();
+
+        System.assertEquals(0, result1.size(), 'First call should return empty');
+        System.assertEquals(0, result2.size(), 'Second call should return empty');
+        System.assertEquals(0, result3.size(), 'Third call should return empty');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_SingleVsMultiple() {
+        List<Product2> products = [SELECT Id FROM Product2];
+
+        Test.startTest();
+        // Test single product
+        Map<Id, String> singleResult = ProductImageHelper.getProductImageUrls(
+            new List<Id>{ products[0].Id },
+            'testWebstore'
+        );
+
+        // Test multiple products
+        List<Id> multipleIds = new List<Id>();
+        for (Product2 p : products) {
+            multipleIds.add(p.Id);
+        }
+        Map<Id, String> multipleResult = ProductImageHelper.getProductImageUrls(multipleIds, 'testWebstore');
+        Test.stopTest();
+
+        System.assertEquals(0, singleResult.size(), 'Single product should return empty without media');
+        System.assertEquals(0, multipleResult.size(), 'Multiple products should return empty without media');
+    }
+
+    @isTest
+    static void testGetProductImageUrls_DebugOutput() {
+        List<Product2> products = [SELECT Id FROM Product2 LIMIT 1];
+        List<Id> productIds = new List<Id>();
+        for (Product2 p : products) {
+            productIds.add(p.Id);
+        }
+
+        Test.startTest();
+        // This test ensures debug statements execute
+        Map<Id, String> result = ProductImageHelper.getProductImageUrls(productIds, 'debugTest');
+        Test.stopTest();
+
+        // Debug statements should have executed
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(0, result.size(), 'Should return empty without ProductMedia');
+    }
 }

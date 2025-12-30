@@ -575,4 +575,161 @@ private class CustomFilterControllerTest {
             }
         }
     }
+
+    @isTest
+    static void testGetFilterDataRepeatedCalls() {
+        Test.startTest();
+        // Call same category multiple times
+        CustomFilterController.FilterDataWrapper result1 =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        CustomFilterController.FilterDataWrapper result2 =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        CustomFilterController.FilterDataWrapper result3 =
+            CustomFilterController.getFilterData('Quick Turn', true);
+        Test.stopTest();
+
+        // All should return consistent results
+        System.assertEquals(6, result1.quickTurnFilters.size(), 'First call should have 6 filters');
+        System.assertEquals(6, result2.quickTurnFilters.size(), 'Second call should have 6 filters');
+        System.assertEquals(6, result3.quickTurnFilters.size(), 'Third call should have 6 filters');
+    }
+
+    @isTest
+    static void testMyProductsAccountNameProperty() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', false);
+        Test.stopTest();
+
+        // Account name should be set for My Products
+        System.assertNotEquals(null, result.accountName, 'Account name should be set');
+        System.assert(result.accountName.length() > 0, 'Account name should not be empty');
+    }
+
+    @isTest
+    static void testQuickTurnNoAccountName() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        // Quick Turn should not have account name
+        System.assertEquals(null, result.accountName, 'Quick Turn should not have account name');
+    }
+
+    @isTest
+    static void testFilterWrapperSelectedValues() {
+        Test.startTest();
+        CustomFilterController.FilterWrapper filter = new CustomFilterController.FilterWrapper();
+        filter.selectedValues.add('value1');
+        filter.selectedValues.add('value2');
+        Test.stopTest();
+
+        System.assertEquals(2, filter.selectedValues.size(), 'Should have 2 selected values');
+    }
+
+    @isTest
+    static void testCreateFilterValueHelper() {
+        Test.startTest();
+        // This indirectly tests the createFilterValue helper method
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', false);
+        Test.stopTest();
+
+        // End user filter should have values (either real or sample)
+        CustomFilterController.FilterWrapper endUserFilter = result.myProductsFilters[0];
+        System.assertNotEquals(null, endUserFilter.values, 'Values should not be null');
+    }
+
+    @isTest
+    static void testGetDistinctTextFieldValuesExceptionHandling() {
+        Test.startTest();
+        // Call Quick Turn which queries all distinct text field values
+        // Even if fields don't exist or throw exceptions, should handle gracefully
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result.quickTurnFilters, 'Should return filters despite any exceptions');
+    }
+
+    @isTest
+    static void testEndUserFilterStructure() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('My Products', true);
+        Test.stopTest();
+
+        CustomFilterController.FilterWrapper endUserFilter = result.myProductsFilters[0];
+        System.assertEquals('endUser', endUserFilter.id, 'Filter ID should be endUser');
+        System.assertEquals('End User', endUserFilter.label, 'Filter label should be End User');
+        System.assertEquals('lookup', endUserFilter.fieldType, 'Field type should be lookup');
+        System.assertNotEquals(null, endUserFilter.values, 'Values should not be null');
+    }
+
+    @isTest
+    static void testDifferentCategoriesIndependent() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper quickTurn =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        CustomFilterController.FilterDataWrapper myProducts =
+            CustomFilterController.getFilterData('My Products', false);
+        CustomFilterController.FilterDataWrapper unknown =
+            CustomFilterController.getFilterData('Unknown', false);
+        Test.stopTest();
+
+        // Quick Turn should only have quickTurnFilters
+        System.assertNotEquals(null, quickTurn.quickTurnFilters, 'Quick Turn should have filters');
+        System.assertEquals(null, quickTurn.myProductsFilters, 'Quick Turn should not have My Products filters');
+
+        // My Products should only have myProductsFilters
+        System.assertNotEquals(null, myProducts.myProductsFilters, 'My Products should have filters');
+        System.assertEquals(null, myProducts.quickTurnFilters, 'My Products should not have Quick Turn filters');
+
+        // Unknown should have neither
+        System.assertEquals(null, unknown.quickTurnFilters, 'Unknown should not have Quick Turn filters');
+        System.assertEquals(null, unknown.myProductsFilters, 'Unknown should not have My Products filters');
+    }
+
+    @isTest
+    static void testSpecialProgramsCheckboxType() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        CustomFilterController.FilterWrapper specialPrograms = result.quickTurnFilters[0];
+        System.assertEquals('checkbox', specialPrograms.fieldType, 'Special Programs should be checkbox type');
+    }
+
+    @isTest
+    static void testAllPicklistFiltersHaveCorrectType() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        // Panels, Profile, Shape, Structure, Visor should all be picklist type
+        for (Integer i = 1; i < result.quickTurnFilters.size(); i++) {
+            CustomFilterController.FilterWrapper filter = result.quickTurnFilters[i];
+            System.assertEquals('picklist', filter.fieldType, filter.label + ' should be picklist type');
+        }
+    }
+
+    @isTest
+    static void testFilterValuesHaveLabelsAndValues() {
+        Test.startTest();
+        CustomFilterController.FilterDataWrapper result =
+            CustomFilterController.getFilterData('Quick Turn', false);
+        Test.stopTest();
+
+        // Check all filter values have label and value properties set
+        for (CustomFilterController.FilterWrapper filter : result.quickTurnFilters) {
+            for (CustomFilterController.FilterValueWrapper value : filter.values) {
+                System.assertNotEquals(null, value.label, 'Value label should not be null');
+                System.assertNotEquals(null, value.value, 'Value value should not be null');
+                System.assertNotEquals(null, value.checked, 'Value checked should not be null');
+            }
+        }
+    }
 }
