@@ -48,9 +48,9 @@ public with sharing class CustomProductQueryController {
             Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
             System.debug('  DEBUG: Total products with End User (no filters): ' + productsWithEndUser);
 
-            // Debug: Check how many match ProductClass filter
-            Integer productsWithProductClass = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true AND ProductClass IN ('Variation Parent', 'Simple')];
-            System.debug('  DEBUG: Products with End User and ProductClass filter: ' + productsWithProductClass);
+            // Debug: Check how many match parent/simple filter
+            Integer productsWithFilter = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true AND (Is_Parent__c = 'Yes' OR ProductClass = 'Simple')];
+            System.debug('  DEBUG: Products with End User and parent/simple filter: ' + productsWithFilter);
 
             // Debug: Check if category exists and has products
             if (String.isNotBlank(categoryId)) {
@@ -82,9 +82,9 @@ public with sharing class CustomProductQueryController {
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
                           'AND End_User__c IN :endUserIds ' +
-                          'AND ProductClass IN (\'Variation Parent\', \'Simple\') ';
+                          'AND (Is_Parent__c = \'Yes\' OR ProductClass = \'Simple\') ';
 
-            System.debug('  Filtering by ProductClass: Variation Parent or Simple');
+            System.debug('  Filtering by: Is_Parent__c = Yes OR ProductClass = Simple');
 
             // Add product code search if provided
             if (String.isNotBlank(productCode)) {
@@ -136,7 +136,7 @@ public with sharing class CustomProductQueryController {
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
                                'WHERE IsActive = true ' +
                                'AND End_User__c IN :endUserIds ' +
-                               'AND ProductClass IN (\'Variation Parent\', \'Simple\') ';
+                               'AND (Is_Parent__c = \'Yes\' OR ProductClass = \'Simple\') ';
 
             // Add product code search to count query
             if (String.isNotBlank(productCode)) {
