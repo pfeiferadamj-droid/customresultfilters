@@ -44,6 +44,18 @@ public with sharing class CustomProductQueryController {
             System.debug('  pageSize: ' + pageSize);
             System.debug('  restrictToParents: ' + restrictToParents);
 
+            ProductQueryResult result = new ProductQueryResult();
+
+            // Validate inputs BEFORE running debug queries
+            if (endUserIds == null || endUserIds.isEmpty()) {
+                System.debug('No end user IDs provided, returning empty result');
+                result.products = new List<ProductWrapper>();
+                result.total = 0;
+                result.pageNumber = pageNumber != null ? pageNumber : 1;
+                result.pageSize = pageSize != null ? pageSize : 12;
+                return result;
+            }
+
             // Debug: Check how many products have these End Users (regardless of category)
             Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
             System.debug('  DEBUG: Total products with End User (no filters): ' + productsWithEndUser);
@@ -56,18 +68,6 @@ public with sharing class CustomProductQueryController {
             if (String.isNotBlank(categoryId)) {
                 Integer productsInCategory = [SELECT COUNT() FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId];
                 System.debug('  DEBUG: Total products in category: ' + productsInCategory);
-            }
-
-            ProductQueryResult result = new ProductQueryResult();
-
-            // Validate inputs
-            if (endUserIds == null || endUserIds.isEmpty()) {
-                System.debug('No end user IDs provided, returning empty result');
-                result.products = new List<ProductWrapper>();
-                result.total = 0;
-                result.pageNumber = pageNumber != null ? pageNumber : 1;
-                result.pageSize = pageSize != null ? pageSize : 12;
-                return result;
             }
 
             // Set defaults
