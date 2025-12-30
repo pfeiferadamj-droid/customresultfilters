@@ -74,15 +74,11 @@ public with sharing class CustomProductQueryController {
                 System.debug('  Adding parent restriction: Is_Parent__c = Yes');
             }
 
-            // Add category filter if provided (commented out temporarily for debugging)
-            // TODO: Uncomment this once products are linked to categories via ProductCategoryProduct
-            /*
+            // Add category filter if provided
             if (String.isNotBlank(categoryId)) {
                 query += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
                 System.debug('  Adding category filter for: ' + categoryId);
             }
-            */
-            System.debug('  NOTE: Category filter temporarily disabled to test End User filtering');
 
             query += 'ORDER BY Name ASC ' +
                     'LIMIT :size OFFSET :offset';
@@ -123,12 +119,10 @@ public with sharing class CustomProductQueryController {
                 countQuery += 'AND Is_Parent__c = \'Yes\' ';
             }
 
-            // Category filter disabled (see above)
-            /*
+            // Add category filter to count query
             if (String.isNotBlank(categoryId)) {
                 countQuery += 'AND Id IN (SELECT ProductId FROM ProductCategoryProduct WHERE ProductCategoryId = :categoryId) ';
             }
-            */
 
             Integer totalCount = Database.countQuery(countQuery);
             System.debug('Total count: ' + totalCount);

@@ -19,9 +19,27 @@ public with sharing class CustomFilterController {
             filterData.quickTurnFilters = getQuickTurnFilters();
         } else if (category == 'My Products') {
             filterData.myProductsFilters = getMyProductsFilters(includeAccountEndUsers);
+            // Get account name for My Products category
+            filterData.accountName = getUserAccountName();
         }
 
         return filterData;
+    }
+
+    /**
+     * Get the current user's account name
+     */
+    private static String getUserAccountName() {
+        try {
+            Id currentUserId = UserInfo.getUserId();
+            List<User> users = [SELECT Account.Name FROM User WHERE Id = :currentUserId LIMIT 1];
+            if (!users.isEmpty() && users[0].Account != null) {
+                return users[0].Account.Name;
+            }
+        } catch (Exception e) {
+            System.debug('ERROR getting account name: ' + e.getMessage());
+        }
+        return 'your account';
     }
 
     /**
@@ -323,6 +341,7 @@ public with sharing class CustomFilterController {
     public class FilterDataWrapper {
         @AuraEnabled public List<FilterWrapper> quickTurnFilters { get; set; }
         @AuraEnabled public List<FilterWrapper> myProductsFilters { get; set; }
+        @AuraEnabled public String accountName { get; set; }
     }
 
     /**

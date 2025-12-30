@@ -7,9 +7,10 @@ import { LightningElement, api, track } from 'lwc';
 export default class CustomFilterPanel extends LightningElement {
     @api category;
     @api isMyProducts = false;
+    @api accountName = 'your account';
 
     // Track whether to show all account end users (My Products only)
-    showAllAccountEndUsers = false;
+    @track showAllAccountEndUsers = false;
 
     // Internal filters with selected values
     @track _filters = [];
@@ -53,6 +54,13 @@ export default class CustomFilterPanel extends LightningElement {
      */
     get clearAllLabel() {
         return 'Clear All';
+    }
+
+    /**
+     * Get the end user scope toggle label
+     */
+    get endUserScopeLabel() {
+        return `Show all end users for ${this.accountName}`;
     }
 
     /**

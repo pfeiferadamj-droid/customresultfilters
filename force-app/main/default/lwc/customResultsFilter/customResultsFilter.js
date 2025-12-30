@@ -174,6 +174,13 @@ export default class CustomResultsFilter extends LightningElement {
     }
 
     /**
+     * Get account name for My Products category
+     */
+    get accountName() {
+        return this.filterData?.accountName || 'your account';
+    }
+
+    /**
      * Handle filter value change
      */
     handleFilterChange(event) {
