@@ -46,7 +46,11 @@ public with sharing class CustomProductQueryController {
 
             // Debug: Check how many products have these End Users (regardless of category)
             Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
-            System.debug('  DEBUG: Total products with End User (no category filter): ' + productsWithEndUser);
+            System.debug('  DEBUG: Total products with End User (no filters): ' + productsWithEndUser);
+
+            // Debug: Check how many match ProductClass filter
+            Integer productsWithProductClass = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true AND ProductClass IN ('Variation Parent', 'Simple')];
+            System.debug('  DEBUG: Products with End User and ProductClass filter: ' + productsWithProductClass);
 
             // Debug: Check if category exists and has products
             if (String.isNotBlank(categoryId)) {
@@ -74,14 +78,13 @@ public with sharing class CustomProductQueryController {
             // Build the query - include fields needed for product display
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
                           'End_User__c, End_User__r.Name, Contact__c, Account__c, ' +
-                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c ' +
+                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c, ProductClass ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
-                          'AND End_User__c IN :endUserIds ';
+                          'AND End_User__c IN :endUserIds ' +
+                          'AND ProductClass IN (\'Variation Parent\', \'Simple\') ';
 
-            // Note: Parent restriction NOT applied for My Products end user filtering
-            // We want to show ALL products for the selected end user(s), including child products
-            System.debug('  Skipping parent restriction - My Products shows all products for end user');
+            System.debug('  Filtering by ProductClass: Variation Parent or Simple');
 
             // Add product code search if provided
             if (String.isNotBlank(productCode)) {
@@ -132,9 +135,8 @@ public with sharing class CustomProductQueryController {
             // Get total count for pagination
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
                                'WHERE IsActive = true ' +
-                               'AND End_User__c IN :endUserIds ';
-
-            // Note: Parent restriction NOT applied (see main query comment above)
+                               'AND End_User__c IN :endUserIds ' +
+                               'AND ProductClass IN (\'Variation Parent\', \'Simple\') ';
 
             // Add product code search to count query
             if (String.isNotBlank(productCode)) {
