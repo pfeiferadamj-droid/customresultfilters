@@ -29,7 +29,16 @@ public with sharing class CustomProductQueryController {
         try {
             System.debug('CustomProductQueryController.getProductsByEndUser called');
             System.debug('  categoryId: ' + categoryId);
+            System.debug('  endUserIds count: ' + (endUserIds != null ? endUserIds.size() : 0));
             System.debug('  endUserIds: ' + endUserIds);
+
+            // Log each end user ID individually for debugging
+            if (endUserIds != null && !endUserIds.isEmpty()) {
+                for (String endUserId : endUserIds) {
+                    System.debug('    - End User ID: ' + endUserId);
+                }
+            }
+
             System.debug('  productCode: ' + productCode);
             System.debug('  pageNumber: ' + pageNumber);
             System.debug('  pageSize: ' + pageSize);
@@ -94,6 +103,11 @@ public with sharing class CustomProductQueryController {
             System.debug('Executing query: ' + query);
             List<Product2> products = Database.query(query);
             System.debug('Found ' + products.size() + ' products');
+
+            // Log each product found for debugging
+            for (Product2 p : products) {
+                System.debug('  Product: ' + p.Name + ' (ID: ' + p.Id + ', End_User__c: ' + p.End_User__c + ', Is_Parent__c: ' + p.Is_Parent__c + ')');
+            }
 
             // Get product images - query ProductMedia separately
             // Get product images using ManagedContentHelper with ConnectAPI

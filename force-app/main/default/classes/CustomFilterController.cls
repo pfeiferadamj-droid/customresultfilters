@@ -260,9 +260,8 @@ public with sharing class CustomFilterController {
 
             if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
-                // Query through Contact relationship since products are associated with Contacts
-                query += 'Contact__c IN (SELECT Id FROM Contact WHERE AccountId = :accountId) AND End_User__c != null';
-                System.debug('Querying by Account via Contacts: ' + accountId);
+                query += 'Account__c = :accountId AND End_User__c != null';
+                System.debug('Querying by Account__c: ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
                 query += 'Contact__c = :contactId AND End_User__c != null';
@@ -283,6 +282,11 @@ public with sharing class CustomFilterController {
 
             System.debug('Found ' + endUserMap.size() + ' unique end users');
 
+            // Log each end user for debugging
+            for (Id endUserId : endUserMap.keySet()) {
+                System.debug('  End User: ' + endUserMap.get(endUserId) + ' (ID: ' + endUserId + ')');
+            }
+
             // Create filter values
             for (Id endUserId : endUserMap.keySet()) {
                 FilterValueWrapper value = new FilterValueWrapper();
@@ -294,6 +298,8 @@ public with sharing class CustomFilterController {
 
             // Sort by label
             values.sort();
+
+            System.debug('Returning ' + values.size() + ' end user filter values');
 
         } catch (Exception e) {
             System.debug('ERROR in getEndUserValues: ' + e.getMessage());
