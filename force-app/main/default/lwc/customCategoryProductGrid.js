@@ -11,6 +11,16 @@ import FIELD_ISPARENT from '@salesforce/schema/Product2.Is_Parent__c';
 // Value that specifies parent.
 const PARENT_VALUE = 'Yes';
 
+// Nested category mappings - map category IDs to their auto-applied filters
+const NESTED_CATEGORY_FILTERS = {
+    // Production nested category IDs
+    '0ZGPU0000002EQH4A2': { specialPrograms: ['RushReady'] },      // Rush Ready nested category
+    '0ZGPU0000002EOf4AM': { specialPrograms: ['QuickTurnDDT'] },   // Dri-Duck nested category
+
+    // Sandbox/Dev nested category IDs (if needed for backward compatibility)
+    // Add sandbox IDs here if they exist
+};
+
 /**
  * Custom category product grid component for B2B Commerce
  * Displays products using the customSearchProductCard component with custom pricing
@@ -378,6 +388,9 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         } else {
             // Load saved filters from sessionStorage before fetching
             this.loadFiltersFromSession();
+
+            // Auto-apply filters for nested categories (Rush Ready, Dri-Duck)
+            this.applyNestedCategoryFilters();
 
             // Fetch products
             await this.fetchProducts();
@@ -1483,6 +1496,35 @@ handleShowProduct(event) {
         } catch (e) {
             console.error('customCategoryProductGrid: Error loading filters from session:', e);
             this.currentFilters = {};
+        }
+    }
+
+    /**
+     * Auto-apply filters for nested categories (Rush Ready, Dri-Duck)
+     * When user visits a nested category page, automatically apply the corresponding filter
+     */
+    applyNestedCategoryFilters() {
+        if (!this.resolvedCategoryId) return;
+
+        // Check if this category ID has auto-applied filters
+        const autoFilters = NESTED_CATEGORY_FILTERS[this.resolvedCategoryId];
+        if (autoFilters) {
+            console.log('customCategoryProductGrid: Detected nested category, auto-applying filters:', autoFilters);
+
+            // Merge auto-filters with current filters
+            for (const [filterId, values] of Object.entries(autoFilters)) {
+                if (!this.currentFilters[filterId]) {
+                    this.currentFilters[filterId] = [];
+                }
+                // Add values that aren't already present
+                for (const value of values) {
+                    if (!this.currentFilters[filterId].includes(value)) {
+                        this.currentFilters[filterId].push(value);
+                    }
+                }
+            }
+
+            console.log('customCategoryProductGrid: Filters after nested category auto-apply:', this.currentFilters);
         }
     }
 
