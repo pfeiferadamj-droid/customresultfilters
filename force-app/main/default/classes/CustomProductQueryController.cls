@@ -46,22 +46,32 @@ public with sharing class CustomProductQueryController {
 
             ProductQueryResult result = new ProductQueryResult();
 
+            // Get metadata values
+            String endUserField = StoreDefaultsHelper.getEndUserField();
+            String isParentField = StoreDefaultsHelper.getIsParentField();
+            String parentProductValue = StoreDefaultsHelper.getParentProductValue();
+            String simpleProductClass = StoreDefaultsHelper.getSimpleProductClass();
+            Integer defaultPageSize = StoreDefaultsHelper.getDefaultPageSize();
+
             // Validate inputs BEFORE running debug queries
             if (endUserIds == null || endUserIds.isEmpty()) {
                 System.debug('No end user IDs provided, returning empty result');
                 result.products = new List<ProductWrapper>();
                 result.total = 0;
                 result.pageNumber = pageNumber != null ? pageNumber : 1;
-                result.pageSize = pageSize != null ? pageSize : 12;
+                result.pageSize = pageSize != null ? pageSize : defaultPageSize;
                 return result;
             }
 
             // Debug: Check how many products have these End Users (regardless of category)
-            Integer productsWithEndUser = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true];
+            String debugQuery1 = 'SELECT COUNT() FROM Product2 WHERE ' + endUserField + ' IN :endUserIds AND IsActive = true';
+            Integer productsWithEndUser = Database.countQuery(debugQuery1);
             System.debug('  DEBUG: Total products with End User (no filters): ' + productsWithEndUser);
 
             // Debug: Check how many match parent/simple filter
-            Integer productsWithFilter = [SELECT COUNT() FROM Product2 WHERE End_User__c IN :endUserIds AND IsActive = true AND (Is_Parent__c = 'Yes' OR ProductClass = 'Simple')];
+            String debugQuery2 = 'SELECT COUNT() FROM Product2 WHERE ' + endUserField + ' IN :endUserIds AND IsActive = true ' +
+                                 'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\')';
+            Integer productsWithFilter = Database.countQuery(debugQuery2);
             System.debug('  DEBUG: Products with End User and parent/simple filter: ' + productsWithFilter);
 
             // Debug: Check if category exists and has products
@@ -72,19 +82,28 @@ public with sharing class CustomProductQueryController {
 
             // Set defaults
             Integer page = pageNumber != null ? pageNumber : 1;
-            Integer size = pageSize != null ? pageSize : 12;
+            Integer size = pageSize != null ? pageSize : defaultPageSize;
             Integer offset = (page - 1) * size;
+
+            // Get additional field names from metadata
+            String contactField = StoreDefaultsHelper.getContactField();
+            String accountField = StoreDefaultsHelper.getAccountField();
+            String shapeField = StoreDefaultsHelper.getShapeField();
+            String rushReadyField = StoreDefaultsHelper.getRushReadyField();
+
+            // Build relationship field name for End User
+            String endUserRelationshipName = endUserField.replace('__c', '__r.Name');
 
             // Build the query - include fields needed for product display
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
-                          'End_User__c, End_User__r.Name, Contact__c, Account__c, ' +
-                          'Shape__c, Rush_Ready__c, IsActive, Is_Parent__c, ProductClass ' +
+                          endUserField + ', ' + endUserRelationshipName + ', ' + contactField + ', ' + accountField + ', ' +
+                          shapeField + ', ' + rushReadyField + ', IsActive, ' + isParentField + ', ProductClass ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ' +
-                          'AND End_User__c IN :endUserIds ' +
-                          'AND (Is_Parent__c = \'Yes\' OR ProductClass = \'Simple\') ';
+                          'AND ' + endUserField + ' IN :endUserIds ' +
+                          'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
 
-            System.debug('  Filtering by: Is_Parent__c = Yes OR ProductClass = Simple');
+            System.debug('  Filtering by: ' + isParentField + ' = ' + parentProductValue + ' OR ProductClass = ' + simpleProductClass);
 
             // Add product code search if provided
             if (String.isNotBlank(productCode)) {
@@ -135,8 +154,8 @@ public with sharing class CustomProductQueryController {
             // Get total count for pagination
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
                                'WHERE IsActive = true ' +
-                               'AND End_User__c IN :endUserIds ' +
-                               'AND (Is_Parent__c = \'Yes\' OR ProductClass = \'Simple\') ';
+                               'AND ' + endUserField + ' IN :endUserIds ' +
+                               'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
 
             // Add product code search to count query
             if (String.isNotBlank(productCode)) {
@@ -180,6 +199,8 @@ public with sharing class CustomProductQueryController {
 
             // Convert to wrapper objects
             List<ProductWrapper> wrappedProducts = new List<ProductWrapper>();
+            String endUserRelationshipField = endUserField.replace('__c', '__r');
+
             for (Product2 p : products) {
                 ProductWrapper pw = new ProductWrapper();
                 pw.id = p.Id;
@@ -187,10 +208,20 @@ public with sharing class CustomProductQueryController {
                 pw.productCode = p.ProductCode;
                 pw.description = p.Description;
                 pw.sku = p.StockKeepingUnit;
-                pw.endUserId = p.End_User__c;
-                pw.endUserName = p.End_User__c != null ? p.End_User__r.Name : null;
-                pw.shapeValue = p.Shape__c;
-                pw.rushReady = p.Rush_Ready__c != null ? p.Rush_Ready__c : false;
+
+                // Dynamic field access for End User
+                pw.endUserId = (Id)p.get(endUserField);
+                if (pw.endUserId != null) {
+                    SObject endUserRecord = p.getSObject(endUserRelationshipField);
+                    if (endUserRecord != null) {
+                        pw.endUserName = (String)endUserRecord.get('Name');
+                    }
+                }
+
+                // Dynamic field access for Shape and Rush Ready
+                pw.shapeValue = (String)p.get(shapeField);
+                Boolean rushReadyValue = (Boolean)p.get(rushReadyField);
+                pw.rushReady = rushReadyValue != null ? rushReadyValue : false;
 
                 // Include image from ProductMedia map
                 pw.imageUrl = productImageMap.get(p.Id);
@@ -266,37 +297,51 @@ public with sharing class CustomProductQueryController {
 
             ProductQueryResult result = new ProductQueryResult();
 
+            // Get metadata values
+            String shapeField = StoreDefaultsHelper.getShapeField();
+            String profileField = StoreDefaultsHelper.getProfileField();
+            String panelsField = StoreDefaultsHelper.getPanelsField();
+            String structureField = StoreDefaultsHelper.getStructureField();
+            String visorField = StoreDefaultsHelper.getVisorField();
+            String rushReadyField = StoreDefaultsHelper.getRushReadyField();
+            String isParentField = StoreDefaultsHelper.getIsParentField();
+            String specialProgramField = StoreDefaultsHelper.getSpecialProgramField();
+            String parentProductValue = StoreDefaultsHelper.getParentProductValue();
+            String driDuckValue = StoreDefaultsHelper.getDriDuckValue();
+            String rushReadyValue = StoreDefaultsHelper.getRushReadyValue();
+            Integer quickTurnPageSize = StoreDefaultsHelper.getQuickTurnPageSize();
+
             // Set up pagination
             Integer page = pageNumber != null ? pageNumber : 1;
-            Integer size = pageSize != null ? pageSize : 24;
+            Integer size = pageSize != null ? pageSize : quickTurnPageSize;
             Integer offset = (page - 1) * size;
 
             // Build dynamic query
             String query = 'SELECT Id, Name, ProductCode, Description, StockKeepingUnit, ' +
-                          'Shape__c, Profile__c, Panels__c, Structure__c, Visor__c, ' +
-                          'Rush_Ready__c, IsActive, Is_Parent__c ' +
+                          shapeField + ', ' + profileField + ', ' + panelsField + ', ' + structureField + ', ' + visorField + ', ' +
+                          rushReadyField + ', IsActive, ' + isParentField + ' ' +
                           'FROM Product2 ' +
                           'WHERE IsActive = true ';
 
             // Add filter conditions
             if (profileValues != null && !profileValues.isEmpty()) {
-                query += 'AND Profile__c IN :profileValues ';
+                query += 'AND ' + profileField + ' IN :profileValues ';
             }
 
             if (panelsValues != null && !panelsValues.isEmpty()) {
-                query += 'AND Panels__c IN :panelsValues ';
+                query += 'AND ' + panelsField + ' IN :panelsValues ';
             }
 
             if (structureValues != null && !structureValues.isEmpty()) {
-                query += 'AND Structure__c IN :structureValues ';
+                query += 'AND ' + structureField + ' IN :structureValues ';
             }
 
             if (visorValues != null && !visorValues.isEmpty()) {
-                query += 'AND Visor__c IN :visorValues ';
+                query += 'AND ' + visorField + ' IN :visorValues ';
             }
 
             if (shapeValues != null && !shapeValues.isEmpty()) {
-                query += 'AND Shape__c IN :shapeValues ';
+                query += 'AND ' + shapeField + ' IN :shapeValues ';
             }
 
             if (String.isNotBlank(productCode)) {
@@ -306,13 +351,13 @@ public with sharing class CustomProductQueryController {
 
             if (specialPrograms != null && !specialPrograms.isEmpty()) {
                 // Build OR conditions for special programs
-                // Supports: 'QuickTurnDDT' (Dri-Duck) and 'RushReady' (Rush Ready)
+                // Supports: Dri-Duck and Rush Ready values from metadata
                 List<String> programConditions = new List<String>();
                 for (String programValue : specialPrograms) {
-                    if (programValue == 'QuickTurnDDT') {
-                        programConditions.add('Special_Program_SAP__c LIKE \'%QuickTurnDDT%\'');
-                    } else if (programValue == 'RushReady') {
-                        programConditions.add('Rush_Ready__c = true');
+                    if (programValue == driDuckValue) {
+                        programConditions.add(specialProgramField + ' LIKE \'%' + driDuckValue + '%\'');
+                    } else if (programValue == rushReadyValue) {
+                        programConditions.add(rushReadyField + ' = true');
                     }
                 }
                 if (!programConditions.isEmpty()) {
@@ -321,8 +366,8 @@ public with sharing class CustomProductQueryController {
             }
 
             if (restrictToParents != null && restrictToParents) {
-                query += 'AND Is_Parent__c = \'Yes\' ';
-                System.debug('  Adding parent restriction: Is_Parent__c = Yes');
+                query += 'AND ' + isParentField + ' = \'' + parentProductValue + '\' ';
+                System.debug('  Adding parent restriction: ' + isParentField + ' = ' + parentProductValue);
             }
 
             // Note: Category filter NOT applied for Quick Turn filtering
@@ -362,23 +407,23 @@ public with sharing class CustomProductQueryController {
                                'WHERE IsActive = true ';
 
             if (profileValues != null && !profileValues.isEmpty()) {
-                countQuery += 'AND Profile__c IN :profileValues ';
+                countQuery += 'AND ' + profileField + ' IN :profileValues ';
             }
 
             if (panelsValues != null && !panelsValues.isEmpty()) {
-                countQuery += 'AND Panels__c IN :panelsValues ';
+                countQuery += 'AND ' + panelsField + ' IN :panelsValues ';
             }
 
             if (structureValues != null && !structureValues.isEmpty()) {
-                countQuery += 'AND Structure__c IN :structureValues ';
+                countQuery += 'AND ' + structureField + ' IN :structureValues ';
             }
 
             if (visorValues != null && !visorValues.isEmpty()) {
-                countQuery += 'AND Visor__c IN :visorValues ';
+                countQuery += 'AND ' + visorField + ' IN :visorValues ';
             }
 
             if (shapeValues != null && !shapeValues.isEmpty()) {
-                countQuery += 'AND Shape__c IN :shapeValues ';
+                countQuery += 'AND ' + shapeField + ' IN :shapeValues ';
             }
 
             if (String.isNotBlank(productCode)) {
@@ -390,10 +435,10 @@ public with sharing class CustomProductQueryController {
                 // Build OR conditions for special programs
                 List<String> programConditions = new List<String>();
                 for (String programValue : specialPrograms) {
-                    if (programValue == 'QuickTurnDDT') {
-                        programConditions.add('Special_Program_SAP__c LIKE \'%QuickTurnDDT%\'');
-                    } else if (programValue == 'RushReady') {
-                        programConditions.add('Rush_Ready__c = true');
+                    if (programValue == driDuckValue) {
+                        programConditions.add(specialProgramField + ' LIKE \'%' + driDuckValue + '%\'');
+                    } else if (programValue == rushReadyValue) {
+                        programConditions.add(rushReadyField + ' = true');
                     }
                 }
                 if (!programConditions.isEmpty()) {
@@ -402,7 +447,7 @@ public with sharing class CustomProductQueryController {
             }
 
             if (restrictToParents != null && restrictToParents) {
-                countQuery += 'AND Is_Parent__c = \'Yes\' ';
+                countQuery += 'AND ' + isParentField + ' = \'' + parentProductValue + '\' ';
             }
 
             // Note: Category filter NOT applied (see main query comment above)
@@ -450,8 +495,11 @@ public with sharing class CustomProductQueryController {
                 pw.productCode = p.ProductCode;
                 pw.description = p.Description;
                 pw.sku = p.StockKeepingUnit;
-                pw.shapeValue = p.Shape__c;
-                pw.rushReady = p.Rush_Ready__c;
+
+                // Dynamic field access for Quick Turn fields
+                pw.shapeValue = (String)p.get(shapeField);
+                pw.rushReady = (Boolean)p.get(rushReadyField);
+
                 pw.imageUrl = productImageMap.get(p.Id);
                 pw.imageAltText = p.Name;
                 wrappedProducts.add(pw);
