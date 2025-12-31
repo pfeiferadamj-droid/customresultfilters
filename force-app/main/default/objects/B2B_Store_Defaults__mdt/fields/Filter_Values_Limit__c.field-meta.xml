@@ -4,6 +4,7 @@
     <label>Filter Values Query Limit</label>
     <description>Max records to query for filter values</description>
     <type>Number</type>
-
+    <precision>5</precision>
+    <scale>0</scale>
     <required>false</required>
 </CustomField>

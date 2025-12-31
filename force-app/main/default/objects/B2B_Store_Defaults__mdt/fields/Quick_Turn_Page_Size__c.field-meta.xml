@@ -4,6 +4,7 @@
     <label>Quick Turn Page Size</label>
     <description>Page size for Quick Turn filtered queries</description>
     <type>Number</type>
-
+    <precision>4</precision>
+    <scale>0</scale>
     <required>false</required>
 </CustomField>
