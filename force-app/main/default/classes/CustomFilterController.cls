@@ -15,9 +15,13 @@ public with sharing class CustomFilterController {
     public static FilterDataWrapper getFilterData(String category, Boolean includeAccountEndUsers) {
         FilterDataWrapper filterData = new FilterDataWrapper();
 
-        if (category == 'Quick Turn') {
+        // Use metadata for category name comparison
+        String quickTurnName = StoreDefaultsHelper.getQuickTurnCategoryName();
+        String myProductsName = StoreDefaultsHelper.getMyProductsCategoryName();
+
+        if (category == quickTurnName) {
             filterData.quickTurnFilters = getQuickTurnFilters();
-        } else if (category == 'My Products') {
+        } else if (category == myProductsName) {
             filterData.myProductsFilters = getMyProductsFilters(includeAccountEndUsers);
             // Get account name for My Products category
             filterData.accountName = getUserAccountName();
@@ -56,13 +60,13 @@ public with sharing class CustomFilterController {
         specialProgramsFilter.fieldType = 'checkbox';
 
         FilterValueWrapper driDuckValue = new FilterValueWrapper();
-        driDuckValue.label = 'Dri-Duck';
-        driDuckValue.value = 'QuickTurnDDT';
+        driDuckValue.label = StoreDefaultsHelper.getDriDuckLabel();
+        driDuckValue.value = StoreDefaultsHelper.getDriDuckValue();
         driDuckValue.checked = false;
 
         FilterValueWrapper rushReadyValue = new FilterValueWrapper();
-        rushReadyValue.label = 'Rush Ready';
-        rushReadyValue.value = 'RushReady';
+        rushReadyValue.label = StoreDefaultsHelper.getRushReadyLabel();
+        rushReadyValue.value = StoreDefaultsHelper.getRushReadyValue();
         rushReadyValue.checked = false;
 
         specialProgramsFilter.values = new List<FilterValueWrapper>{ driDuckValue, rushReadyValue };
@@ -134,35 +138,35 @@ public with sharing class CustomFilterController {
      * Get Shape values from products (text field)
      */
     private static List<FilterValueWrapper> getShapePicklistValues() {
-        return getDistinctTextFieldValues('Shape__c', 'Shape');
+        return getDistinctTextFieldValues(StoreDefaultsHelper.getShapeField(), 'Shape');
     }
 
     /**
      * Get Profile values from products (text field)
      */
     private static List<FilterValueWrapper> getProfilePicklistValues() {
-        return getDistinctTextFieldValues('Profile__c', 'Profile');
+        return getDistinctTextFieldValues(StoreDefaultsHelper.getProfileField(), 'Profile');
     }
 
     /**
      * Get Panels values from products (text field)
      */
     private static List<FilterValueWrapper> getPanelsPicklistValues() {
-        return getDistinctTextFieldValues('Panels__c', 'Panels');
+        return getDistinctTextFieldValues(StoreDefaultsHelper.getPanelsField(), 'Panels');
     }
 
     /**
      * Get Structure values from products (text field)
      */
     private static List<FilterValueWrapper> getStructurePicklistValues() {
-        return getDistinctTextFieldValues('Structure__c', 'Structure');
+        return getDistinctTextFieldValues(StoreDefaultsHelper.getStructureField(), 'Structure');
     }
 
     /**
      * Get Visor values from products (text field)
      */
     private static List<FilterValueWrapper> getVisorPicklistValues() {
-        return getDistinctTextFieldValues('Visor__c', 'Visor');
+        return getDistinctTextFieldValues(StoreDefaultsHelper.getVisorField(), 'Visor');
     }
 
     /**
@@ -179,9 +183,10 @@ public with sharing class CustomFilterController {
         try {
             // Build dynamic SOQL query to get distinct values
             // Using WITH USER_MODE to enforce Field-Level Security
+            Integer queryLimit = StoreDefaultsHelper.getFilterValuesLimit();
             String query = 'SELECT ' + fieldApiName + ' FROM Product2 ' +
                           'WHERE IsActive = true AND ' + fieldApiName + ' != null ' +
-                          'WITH USER_MODE LIMIT 2000';
+                          'WITH USER_MODE LIMIT ' + queryLimit;
 
             System.debug('Querying distinct values for ' + fieldLabel + ': ' + query);
 
@@ -254,19 +259,24 @@ public with sharing class CustomFilterController {
             System.debug('User ContactId: ' + contactId);
             System.debug('User AccountId: ' + accountId);
 
-            String query = 'SELECT Id, End_User__c, End_User__r.Name FROM Product2 WHERE ';
+            // Get field names from metadata
+            String endUserField = StoreDefaultsHelper.getEndUserField();
+            String contactField = StoreDefaultsHelper.getContactField();
+            String accountField = StoreDefaultsHelper.getAccountField();
+
+            String query = 'SELECT Id, ' + endUserField + ', ' + endUserField.replace('__c', '__r') + '.Name FROM Product2 WHERE ';
 
             // Handle null includeAccountEndUsers (treat as false)
             Boolean includeAccount = (includeAccountEndUsers == true);
 
             if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
-                query += 'Account__c = :accountId AND End_User__c != null WITH USER_MODE';
-                System.debug('Querying by Account__c: ' + accountId);
+                query += accountField + ' = :accountId AND ' + endUserField + ' != null WITH USER_MODE';
+                System.debug('Querying by ' + accountField + ': ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
-                query += 'Contact__c = :contactId AND End_User__c != null WITH USER_MODE';
-                System.debug('Querying by Contact: ' + contactId);
+                query += contactField + ' = :contactId AND ' + endUserField + ' != null WITH USER_MODE';
+                System.debug('Querying by ' + contactField + ': ' + contactId);
             }
 
             System.debug('Executing query: ' + query);
@@ -276,8 +286,15 @@ public with sharing class CustomFilterController {
             // Collect unique end users
             Map<Id, String> endUserMap = new Map<Id, String>();
             for (Product2 product : products) {
-                if (product.End_User__c != null && !endUserMap.containsKey(product.End_User__c)) {
-                    endUserMap.put(product.End_User__c, product.End_User__r.Name);
+                Id endUserId = (Id)product.get(endUserField);
+                if (endUserId != null && !endUserMap.containsKey(endUserId)) {
+                    // Get the relationship field name
+                    String relationshipName = endUserField.replace('__c', '__r');
+                    SObject endUserRecord = product.getSObject(relationshipName);
+                    String endUserName = endUserRecord != null ? (String)endUserRecord.get('Name') : null;
+                    if (endUserName != null) {
+                        endUserMap.put(endUserId, endUserName);
+                    }
                 }
             }
 

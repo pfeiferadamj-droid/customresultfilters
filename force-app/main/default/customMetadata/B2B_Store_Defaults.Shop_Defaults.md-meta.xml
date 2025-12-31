@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Shop Defaults</label>
+    <protected>false</protected>
+    <values>
+        <field>My_Products_Category_ID__c</field>
+        <value xsi:type="xsd:string">0ZGPU0000001iob4AA</value>
+    </values>
+    <values>
+        <field>Quick_Turn_Category_ID__c</field>
+        <value xsi:type="xsd:string">0ZGPU0000001iqD4AQ</value>
+    </values>
+    <values>
+        <field>Quick_Turn_Category_Name__c</field>
+        <value xsi:type="xsd:string">Quick Turn</value>
+    </values>
+    <values>
+        <field>My_Products_Category_Name__c</field>
+        <value xsi:type="xsd:string">My Products</value>
+    </values>
+    <values>
+        <field>Shape_Field__c</field>
+        <value xsi:type="xsd:string">Shape__c</value>
+    </values>
+    <values>
+        <field>Profile_Field__c</field>
+        <value xsi:type="xsd:string">Profile__c</value>
+    </values>
+    <values>
+        <field>Panels_Field__c</field>
+        <value xsi:type="xsd:string">Panels__c</value>
+    </values>
+    <values>
+        <field>Structure_Field__c</field>
+        <value xsi:type="xsd:string">Structure__c</value>
+    </values>
+    <values>
+        <field>Visor_Field__c</field>
+        <value xsi:type="xsd:string">Visor__c</value>
+    </values>
+    <values>
+        <field>End_User_Field__c</field>
+        <value xsi:type="xsd:string">End_User__c</value>
+    </values>
+    <values>
+        <field>Rush_Ready_Field__c</field>
+        <value xsi:type="xsd:string">Rush_Ready__c</value>
+    </values>
+    <values>
+        <field>Is_Parent_Field__c</field>
+        <value xsi:type="xsd:string">Is_Parent__c</value>
+    </values>
+    <values>
+        <field>Special_Program_Field__c</field>
+        <value xsi:type="xsd:string">Special_Program_SAP__c</value>
+    </values>
+    <values>
+        <field>Contact_Field__c</field>
+        <value xsi:type="xsd:string">Contact__c</value>
+    </values>
+    <values>
+        <field>Account_Field__c</field>
+        <value xsi:type="xsd:string">Account__c</value>
+    </values>
+    <values>
+        <field>Dri_Duck_Value__c</field>
+        <value xsi:type="xsd:string">QuickTurnDDT</value>
+    </values>
+    <values>
+        <field>Rush_Ready_Value__c</field>
+        <value xsi:type="xsd:string">RushReady</value>
+    </values>
+    <values>
+        <field>Dri_Duck_Label__c</field>
+        <value xsi:type="xsd:string">Dri-Duck</value>
+    </values>
+    <values>
+        <field>Rush_Ready_Label__c</field>
+        <value xsi:type="xsd:string">Rush Ready</value>
+    </values>
+    <values>
+        <field>Parent_Product_Value__c</field>
+        <value xsi:type="xsd:string">Yes</value>
+    </values>
+    <values>
+        <field>Simple_Product_Class__c</field>
+        <value xsi:type="xsd:string">Simple</value>
+    </values>
+    <values>
+        <field>Default_Page_Size__c</field>
+        <value xsi:type="xsd:double">12.0</value>
+    </values>
+    <values>
+        <field>Quick_Turn_Page_Size__c</field>
+        <value xsi:type="xsd:double">24.0</value>
+    </values>
+    <values>
+        <field>Filter_Values_Limit__c</field>
+        <value xsi:type="xsd:double">2000.0</value>
+    </values>
+    <values>
+        <field>Quick_Turn_URL_Slug__c</field>
+        <value xsi:type="xsd:string">quick-turn</value>
+    </values>
+    <values>
+        <field>My_Products_URL_Slug__c</field>
+        <value xsi:type="xsd:string">my-products</value>
+    </values>
+    <values>
+        <field>Detail_URL_Slug__c</field>
+        <value xsi:type="xsd:string">detail</value>
+    </values>
+</CustomMetadata>

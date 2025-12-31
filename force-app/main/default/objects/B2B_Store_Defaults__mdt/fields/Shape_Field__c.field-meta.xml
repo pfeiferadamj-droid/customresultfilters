@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Shape_Field__c</fullName>
+    <label>Shape Field API Name</label>
+    <description>API name of the Shape field on Product2</description>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+</CustomField>

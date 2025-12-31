@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Filter_Values_Limit__c</fullName>
+    <label>Filter Values Query Limit</label>
+    <description>Max records to query for filter values</description>
+    <type>Number</type>
+
+    <required>false</required>
+</CustomField>

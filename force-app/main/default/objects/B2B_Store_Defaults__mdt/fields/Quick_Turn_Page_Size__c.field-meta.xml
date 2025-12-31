@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Quick_Turn_Page_Size__c</fullName>
+    <label>Quick Turn Page Size</label>
+    <description>Page size for Quick Turn filtered queries</description>
+    <type>Number</type>
+
+    <required>false</required>
+</CustomField>
