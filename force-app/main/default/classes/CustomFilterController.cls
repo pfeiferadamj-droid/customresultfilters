@@ -182,8 +182,8 @@ public with sharing class CustomFilterController {
 
         try {
             // Build dynamic SOQL query to get distinct values
-            // Note: Removed WITH USER_MODE for guest user compatibility
-            // Using Security.stripInaccessible() instead for FLS enforcement
+            // Note: This class is "with sharing" so record-level security is enforced
+            // Not using WITH USER_MODE or Security.stripInaccessible() to avoid FLS issues with guest users
             Integer queryLimit = StoreDefaultsHelper.getFilterValuesLimit();
             String query = 'SELECT Id, ' + fieldApiName + ' FROM Product2 ' +
                           'WHERE IsActive = true AND ' + fieldApiName + ' != null ' +
@@ -193,16 +193,6 @@ public with sharing class CustomFilterController {
 
             List<Product2> products = Database.query(query);
             System.debug('  Found ' + products.size() + ' active products with ' + fieldLabel);
-
-            // Strip inaccessible fields to respect FLS without blocking the query
-            try {
-                SObjectAccessDecision decision = Security.stripInaccessible(AccessType.READABLE, products);
-                products = decision.getRecords();
-                System.debug('  After FLS filtering: ' + products.size() + ' products');
-            } catch (Exception flsEx) {
-                System.debug('  FLS filtering skipped: ' + flsEx.getMessage());
-                // Continue with original results if stripInaccessible fails
-            }
 
             // Collect distinct values
             for (Product2 p : products) {
@@ -304,19 +294,14 @@ public with sharing class CustomFilterController {
                 System.debug('Querying by ' + contactField + ': ' + contactId);
             }
 
-            System.debug('Executing query (without USER_MODE for guest user FLS): ' + query);
+            System.debug('Executing query: ' + query);
             List<Product2> products = Database.query(query);
             System.debug('Found ' + products.size() + ' products');
 
-            // Strip inaccessible fields to respect FLS without blocking the query
-            try {
-                SObjectAccessDecision decision = Security.stripInaccessible(AccessType.READABLE, products);
-                products = decision.getRecords();
-                System.debug('After FLS filtering: ' + products.size() + ' products');
-            } catch (Exception flsEx) {
-                System.debug('FLS filtering skipped: ' + flsEx.getMessage());
-                // Continue with original results if stripInaccessible fails
-            }
+            // Note: Not using Security.stripInaccessible() because:
+            // 1. This class is "with sharing" so record-level security is enforced
+            // 2. The WHERE clause filters to user's own products (Contact__c or Account__c)
+            // 3. stripInaccessible() would remove End_User__c field, breaking the filter logic
 
             // Collect unique end users
             Map<Id, String> endUserMap = new Map<Id, String>();
