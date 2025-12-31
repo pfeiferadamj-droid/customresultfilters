@@ -182,16 +182,27 @@ public with sharing class CustomFilterController {
 
         try {
             // Build dynamic SOQL query to get distinct values
-            // Using WITH USER_MODE to enforce Field-Level Security
+            // Note: Removed WITH USER_MODE for guest user compatibility
+            // Using Security.stripInaccessible() instead for FLS enforcement
             Integer queryLimit = StoreDefaultsHelper.getFilterValuesLimit();
-            String query = 'SELECT ' + fieldApiName + ' FROM Product2 ' +
+            String query = 'SELECT Id, ' + fieldApiName + ' FROM Product2 ' +
                           'WHERE IsActive = true AND ' + fieldApiName + ' != null ' +
-                          'WITH USER_MODE LIMIT ' + queryLimit;
+                          'LIMIT ' + queryLimit;
 
             System.debug('Querying distinct values for ' + fieldLabel + ': ' + query);
 
             List<Product2> products = Database.query(query);
             System.debug('  Found ' + products.size() + ' active products with ' + fieldLabel);
+
+            // Strip inaccessible fields to respect FLS without blocking the query
+            try {
+                SObjectAccessDecision decision = Security.stripInaccessible(AccessType.READABLE, products);
+                products = decision.getRecords();
+                System.debug('  After FLS filtering: ' + products.size() + ' products');
+            } catch (Exception flsEx) {
+                System.debug('  FLS filtering skipped: ' + flsEx.getMessage());
+                // Continue with original results if stripInaccessible fails
+            }
 
             // Collect distinct values
             for (Product2 p : products) {
@@ -285,17 +296,27 @@ public with sharing class CustomFilterController {
 
             if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
-                query += accountField + ' = :accountId AND ' + endUserField + ' != null WITH USER_MODE';
+                query += accountField + ' = :accountId AND ' + endUserField + ' != null';
                 System.debug('Querying by ' + accountField + ': ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
-                query += contactField + ' = :contactId AND ' + endUserField + ' != null WITH USER_MODE';
+                query += contactField + ' = :contactId AND ' + endUserField + ' != null';
                 System.debug('Querying by ' + contactField + ': ' + contactId);
             }
 
-            System.debug('Executing query: ' + query);
+            System.debug('Executing query (without USER_MODE for guest user FLS): ' + query);
             List<Product2> products = Database.query(query);
             System.debug('Found ' + products.size() + ' products');
+
+            // Strip inaccessible fields to respect FLS without blocking the query
+            try {
+                SObjectAccessDecision decision = Security.stripInaccessible(AccessType.READABLE, products);
+                products = decision.getRecords();
+                System.debug('After FLS filtering: ' + products.size() + ' products');
+            } catch (Exception flsEx) {
+                System.debug('FLS filtering skipped: ' + flsEx.getMessage());
+                // Continue with original results if stripInaccessible fails
+            }
 
             // Collect unique end users
             Map<Id, String> endUserMap = new Map<Id, String>();
