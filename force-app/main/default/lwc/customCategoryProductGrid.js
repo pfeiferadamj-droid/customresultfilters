@@ -14,8 +14,8 @@ const PARENT_VALUE = 'Yes';
 // Nested category mappings - map category IDs to their auto-applied filters
 const NESTED_CATEGORY_FILTERS = {
     // Production nested category IDs
-    '0ZGPU0000002EQH4A2': { specialPrograms: ['RushReady'] },      // Rush Ready nested category
-    '0ZGPU0000002EOf4AM': { specialPrograms: ['QuickTurnDDT'] },   // Dri-Duck nested category
+    '0ZGPU0000002EQH4A2': { specialPrograms: ['QuickTurnDDT'] },   // Dri-Duck nested category
+    '0ZGPU0000002EOf4AM': { specialPrograms: ['RushReady'] },      // Rush Ready nested category
 
     // Sandbox/Dev nested category IDs (if needed for backward compatibility)
     // Add sandbox IDs here if they exist
@@ -116,6 +116,13 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             this.resolvedCategoryId = value;
             // Only fetch if component is already initialized (not during initial setup)
             if (this._isInitialized && this.webstoreId && this.resolvedCategoryId) {
+                console.log('Category changed from', oldValue, 'to', value);
+                // Clear filters when category changes
+                this.currentFilters = {};
+                this.clearFiltersFromSession();
+                // Re-apply nested category filters for new category
+                this.applyNestedCategoryFilters();
+                // Fetch products with new filters
                 this.fetchProducts();
             }
         }
@@ -165,6 +172,7 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     // Store previous URL state to detect changes
     _previousSortRuleId = null;
     _previousRefinements = null;
+    _previousCategoryId = null;
 
     // Lightning Message Service for filter communication
     @wire(MessageContext)
@@ -177,6 +185,31 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.pageRef = pageRef;
 
         if (pageRef && this._isInitialized) {
+            // Extract category ID from current page URL
+            let newCategoryId = null;
+            const url = window.location.href;
+            const categoryMatch = url.match(/\/category\/[^\/]+\/([a-zA-Z0-9]{15,18})/);
+            if (categoryMatch) {
+                newCategoryId = categoryMatch[1];
+            }
+
+            // Check if category changed via URL navigation
+            if (newCategoryId && newCategoryId !== this._previousCategoryId) {
+                console.log('Category changed via URL from', this._previousCategoryId, 'to', newCategoryId);
+                this._previousCategoryId = newCategoryId;
+                this.resolvedCategoryId = newCategoryId;
+                // Clear filters when category changes
+                this.currentFilters = {};
+                this.clearFiltersFromSession();
+                // Re-apply nested category filters for new category
+                this.applyNestedCategoryFilters();
+                // Reset to first page
+                this.currentPage = 1;
+                // Fetch products with new filters
+                this.fetchProducts();
+                return; // Skip sort/filter processing since we're changing categories
+            }
+
             // Check for sort/filter changes in URL
             const urlParams = new URLSearchParams(window.location.search);
             // Native Salesforce uses 'sortRule' parameter
@@ -386,6 +419,9 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             console.warn('Category ID not found in URL or navigation context.');
             this.error = 'Category ID not found';
         } else {
+            // Track initial category ID for change detection
+            this._previousCategoryId = this.resolvedCategoryId;
+
             // Load saved filters from sessionStorage before fetching
             this.loadFiltersFromSession();
 
