@@ -41,7 +41,8 @@ export default class CustomResultsFilter extends LightningElement {
         // Production category IDs
         '0ZGPU0000001iob4AA': 'My Products',  // My Products category (production)
         '0ZGPU0000001iqD4AQ': 'Quick Turn',   // Quick Turn parent category (production)
-        // TODO: Add nested Quick Turn subcategory IDs here
+        '0ZGPU0000002EQH4A2': 'Quick Turn',   // Quick Turn nested subcategory 1 (production)
+        '0ZGPU0000002EOf4AM': 'Quick Turn',   // Quick Turn nested subcategory 2 (production)
 
         // Sandbox/Dev category IDs (keep for backward compatibility)
         '0ZGbb000000FFOXGA4': 'My Products',
