@@ -264,7 +264,10 @@ public with sharing class CustomFilterController {
             String contactField = StoreDefaultsHelper.getContactField();
             String accountField = StoreDefaultsHelper.getAccountField();
 
-            String query = 'SELECT Id, ' + endUserField + ', ' + endUserField.replace('__c', '__r') + '.Name FROM Product2 WHERE ';
+            // Build relationship field name for querying related Name
+            String endUserRelationshipField = endUserField.replace('__c', '__r.Name');
+
+            String query = 'SELECT Id, ' + endUserField + ', ' + endUserRelationshipField + ' FROM Product2 WHERE ';
 
             // Handle null includeAccountEndUsers (treat as false)
             Boolean includeAccount = (includeAccountEndUsers == true);
@@ -285,15 +288,23 @@ public with sharing class CustomFilterController {
 
             // Collect unique end users
             Map<Id, String> endUserMap = new Map<Id, String>();
+            String relationshipName = endUserField.replace('__c', '__r');
+
             for (Product2 product : products) {
                 Id endUserId = (Id)product.get(endUserField);
                 if (endUserId != null && !endUserMap.containsKey(endUserId)) {
-                    // Get the relationship field name
-                    String relationshipName = endUserField.replace('__c', '__r');
-                    SObject endUserRecord = product.getSObject(relationshipName);
-                    String endUserName = endUserRecord != null ? (String)endUserRecord.get('Name') : null;
-                    if (endUserName != null) {
-                        endUserMap.put(endUserId, endUserName);
+                    try {
+                        // Access the relationship name using getSObject, then get Name from that record
+                        SObject relatedRecord = product.getSObject(relationshipName);
+                        if (relatedRecord != null) {
+                            String endUserName = (String)relatedRecord.get('Name');
+                            if (String.isNotBlank(endUserName)) {
+                                endUserMap.put(endUserId, endUserName);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        System.debug('Error accessing relationship ' + relationshipName + ': ' + ex.getMessage());
+                        // Skip this record if we can't access the relationship
                     }
                 }
             }
