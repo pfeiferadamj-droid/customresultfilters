@@ -178,9 +178,10 @@ public with sharing class CustomFilterController {
 
         try {
             // Build dynamic SOQL query to get distinct values
+            // Using WITH USER_MODE to enforce Field-Level Security
             String query = 'SELECT ' + fieldApiName + ' FROM Product2 ' +
                           'WHERE IsActive = true AND ' + fieldApiName + ' != null ' +
-                          'LIMIT 2000';
+                          'WITH USER_MODE LIMIT 2000';
 
             System.debug('Querying distinct values for ' + fieldLabel + ': ' + query);
 
@@ -260,11 +261,11 @@ public with sharing class CustomFilterController {
 
             if (includeAccount && accountId != null) {
                 // Get all end users for products associated with user's account
-                query += 'Account__c = :accountId AND End_User__c != null';
+                query += 'Account__c = :accountId AND End_User__c != null WITH USER_MODE';
                 System.debug('Querying by Account__c: ' + accountId);
             } else {
                 // Get end users only for products where the user is the contact
-                query += 'Contact__c = :contactId AND End_User__c != null';
+                query += 'Contact__c = :contactId AND End_User__c != null WITH USER_MODE';
                 System.debug('Querying by Contact: ' + contactId);
             }
 
