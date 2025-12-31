@@ -433,6 +433,14 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
 
         this.isLoadingProducts = true;
         this.error = null;
+
+        console.log('🔄 fetchProducts called');
+        console.log('  categoryName:', this.categoryName);
+        console.log('  resolvedCategoryId:', this.resolvedCategoryId);
+        console.log('  webstoreId:', this.webstoreId);
+        console.log('  restrictToParents:', this.restrictToParents);
+        console.log('  currentFilters:', JSON.stringify(this.currentFilters));
+
         try {
             // Check if filtering by End User (lookup field - My Products category)
             const endUserFilterValues = this.currentFilters['endUser'];
@@ -450,14 +458,15 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
 
             if (hasEndUserFilter) {
                 // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
-                console.log('Using custom SOQL query for End User filter:', endUserFilterValues);
+                console.log('➡️ Using custom SOQL query for End User filter:', endUserFilterValues);
                 await this.fetchProductsByEndUser(endUserFilterValues);
             } else if (hasQuickTurnFilters) {
                 // Use custom SOQL query for Quick Turn text field filters
-                console.log('Using custom SOQL query for Quick Turn filters');
+                console.log('➡️ Using custom SOQL query for Quick Turn filters');
                 await this.fetchProductsByQuickTurnFilters();
             } else {
                 // Use standard Commerce Search API for other filters
+                console.log('➡️ Using Commerce Search API (no active filters)');
                 await this.fetchProductsViaCommerceSearch();
             }
         } catch (error) {
@@ -508,19 +517,23 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 nameOrId: FIELD_ISPARENT.fieldApiName,
                 values: [ PARENT_VALUE ],
             });
-            console.log('Added parent restriction refinement');
+            console.log('⚠️ Added parent restriction refinement - this will filter to parent products only');
+            console.log('⚠️ restrictToParents is TRUE - if you see 0 products, check if products have Is_Parent__c = Yes');
+        } else {
+            console.log('✓ restrictToParents is FALSE - not filtering by parent products');
         }
 
         // Convert to JSON for Apex call
         const refinementsJSON = refinementsArr.length > 0 ? JSON.stringify(refinementsArr) : null;
 
-        console.log('Fetching products via Commerce Search with params:', {
+        console.log('🔍 Fetching products via Commerce Search with params:', {
             categoryId: this.resolvedCategoryId,
             webstoreId: this.webstoreId,
             pageSize: this.productsPerPage,
             pageNumber: this.currentPage,
             sortRuleId: this.sortRuleId,
-            refinementsJSON: refinementsJSON
+            refinementsJSON: refinementsJSON,
+            restrictToParents: this.restrictToParents
         });
 
         const result = await getCategoryProducts({
