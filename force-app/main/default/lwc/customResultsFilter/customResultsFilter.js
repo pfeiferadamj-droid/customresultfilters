@@ -38,8 +38,14 @@ export default class CustomResultsFilter extends LightningElement {
 
     // Category ID to display name mapping (for URLs without slugs)
     categoryIdMapping = {
-        '0ZGbb000000FFOXGA4': 'My Products',  // Your My Products category ID
-        '0ZGbb000000F5llGAC': 'Quick Turn'    // Your Quick Turn category ID
+        // Production category IDs
+        '0ZGPU0000001iob4AA': 'My Products',  // My Products category (production)
+        '0ZGPU0000001iqD4AQ': 'Quick Turn',   // Quick Turn parent category (production)
+        // TODO: Add nested Quick Turn subcategory IDs here
+
+        // Sandbox/Dev category IDs (keep for backward compatibility)
+        '0ZGbb000000FFOXGA4': 'My Products',
+        '0ZGbb000000F5llGAC': 'Quick Turn'
     };
 
     // Wire to get current page reference (URL parameters)

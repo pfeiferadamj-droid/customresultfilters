@@ -501,15 +501,10 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             }
         }
 
-        // 3. Add parent restriction if needed
-        if (this.restrictToParents) {
-            refinementsArr.push({
-                attributeType: 'Custom',
-                nameOrId: FIELD_ISPARENT.fieldApiName,
-                values: [ PARENT_VALUE ],
-            });
-            console.log('Added parent restriction refinement');
-        }
+        // NOTE: restrictToParents is NOT supported in Commerce Search API
+        // Is_Parent__c is not an indexed field and will cause "Invalid refinement" error
+        // Parent restriction only works with SOQL queries (Quick Turn filters, End User filters)
+        // If you need parent-only products, use Quick Turn or My Products categories
 
         // Convert to JSON for Apex call
         const refinementsJSON = refinementsArr.length > 0 ? JSON.stringify(refinementsArr) : null;
