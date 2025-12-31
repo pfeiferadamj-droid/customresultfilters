@@ -188,26 +188,36 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             // Extract category ID from current page URL
             let newCategoryId = null;
             const url = window.location.href;
+            console.log('📍 handlePageReference - URL:', url);
+
             const categoryMatch = url.match(/\/category\/[^\/]+\/([a-zA-Z0-9]{15,18})/);
+            console.log('  categoryMatch:', categoryMatch);
+
             if (categoryMatch) {
                 newCategoryId = categoryMatch[1];
+                console.log('  Extracted categoryId from URL:', newCategoryId);
             }
 
             // Check if category changed via URL navigation
             if (newCategoryId && newCategoryId !== this._previousCategoryId) {
-                console.log('Category changed via URL from', this._previousCategoryId, 'to', newCategoryId);
+                console.log('🔄 Category changed via URL from', this._previousCategoryId, 'to', newCategoryId);
                 this._previousCategoryId = newCategoryId;
                 this.resolvedCategoryId = newCategoryId;
                 // Clear filters when category changes
+                console.log('  Clearing filters...');
                 this.currentFilters = {};
                 this.clearFiltersFromSession();
                 // Re-apply nested category filters for new category
+                console.log('  Re-applying nested category filters...');
                 this.applyNestedCategoryFilters();
                 // Reset to first page
                 this.currentPage = 1;
                 // Fetch products with new filters
+                console.log('  Fetching products...');
                 this.fetchProducts();
                 return; // Skip sort/filter processing since we're changing categories
+            } else if (newCategoryId) {
+                console.log('  Category unchanged:', newCategoryId);
             }
 
             // Check for sort/filter changes in URL
@@ -483,12 +493,13 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.isLoadingProducts = true;
         this.error = null;
 
-        console.log('🔄 fetchProducts called');
+        console.log('🔄 ========== fetchProducts called ==========');
         console.log('  categoryName:', this.categoryName);
         console.log('  resolvedCategoryId:', this.resolvedCategoryId);
         console.log('  webstoreId:', this.webstoreId);
         console.log('  restrictToParents:', this.restrictToParents);
-        console.log('  currentFilters:', JSON.stringify(this.currentFilters));
+        console.log('  currentFilters:', JSON.stringify(this.currentFilters, null, 2));
+        console.log('  URL:', window.location.href);
 
         try {
             // Check if filtering by End User (lookup field - My Products category)
@@ -505,26 +516,32 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 (this.currentFilters['productCode'] && this.currentFilters['productCode'].length > 0) ||
                 (this.currentFilters['specialPrograms'] && this.currentFilters['specialPrograms'].length > 0);
 
+            console.log('  Filter Analysis:');
+            console.log('    hasEndUserFilter:', hasEndUserFilter);
+            console.log('    hasQuickTurnFilters:', hasQuickTurnFilters);
+
             if (hasEndUserFilter) {
                 // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
-                console.log('➡️ Using custom SOQL query for End User filter:', endUserFilterValues);
+                console.log('➡️  Using custom SOQL query for End User filter:', endUserFilterValues);
                 await this.fetchProductsByEndUser(endUserFilterValues);
             } else if (hasQuickTurnFilters) {
                 // Use custom SOQL query for Quick Turn text field filters
-                console.log('➡️ Using custom SOQL query for Quick Turn filters');
+                console.log('➡️  Using custom SOQL query for Quick Turn filters');
+                console.log('    specialPrograms:', this.currentFilters['specialPrograms']);
                 await this.fetchProductsByQuickTurnFilters();
             } else {
                 // Use standard Commerce Search API for other filters
-                console.log('➡️ Using Commerce Search API (no active filters)');
+                console.log('➡️  Using Commerce Search API (no active filters)');
                 await this.fetchProductsViaCommerceSearch();
             }
         } catch (error) {
-            console.error('Error fetching products:', error);
+            console.error('❌ Error fetching products:', error);
             console.error('Error details:', JSON.stringify(error));
             this.error = error;
             this.searchResults = null;
         } finally {
             this.isLoadingProducts = false;
+            console.log('========== fetchProducts completed ==========');
         }
     }
 
@@ -1540,12 +1557,21 @@ handleShowProduct(event) {
      * When user visits a nested category page, automatically apply the corresponding filter
      */
     applyNestedCategoryFilters() {
-        if (!this.resolvedCategoryId) return;
+        console.log('🔍 applyNestedCategoryFilters called');
+        console.log('  resolvedCategoryId:', this.resolvedCategoryId);
+        console.log('  NESTED_CATEGORY_FILTERS:', NESTED_CATEGORY_FILTERS);
+
+        if (!this.resolvedCategoryId) {
+            console.log('  ❌ No resolvedCategoryId, skipping');
+            return;
+        }
 
         // Check if this category ID has auto-applied filters
         const autoFilters = NESTED_CATEGORY_FILTERS[this.resolvedCategoryId];
+        console.log('  autoFilters for this category:', autoFilters);
+
         if (autoFilters) {
-            console.log('customCategoryProductGrid: Detected nested category, auto-applying filters:', autoFilters);
+            console.log('  ✅ Detected nested category, auto-applying filters:', autoFilters);
 
             // Merge auto-filters with current filters
             for (const [filterId, values] of Object.entries(autoFilters)) {
@@ -1556,11 +1582,14 @@ handleShowProduct(event) {
                 for (const value of values) {
                     if (!this.currentFilters[filterId].includes(value)) {
                         this.currentFilters[filterId].push(value);
+                        console.log(`    Added ${value} to ${filterId} filter`);
                     }
                 }
             }
 
-            console.log('customCategoryProductGrid: Filters after nested category auto-apply:', this.currentFilters);
+            console.log('  Filters after nested category auto-apply:', JSON.stringify(this.currentFilters, null, 2));
+        } else {
+            console.log('  ℹ️  Not a nested category (or not in mapping), no auto-filters applied');
         }
     }
 
