@@ -5,11 +5,10 @@ import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChanne
 import getCategoryProducts from '@salesforce/apex/CategoryProductController.getCategoryProducts';
 import getProductsByEndUser from '@salesforce/apex/CustomProductQueryController.getProductsByEndUser';
 import getProductsByQuickTurnFilters from '@salesforce/apex/CustomProductQueryController.getProductsByQuickTurnFilters';
+import getAllDefaults from '@salesforce/apex/StoreDefaultsHelper.getAllDefaults';
 
 // Field used to filter to parents only.
 import FIELD_ISPARENT from '@salesforce/schema/Product2.Is_Parent__c';
-// Value that specifies parent.
-const PARENT_VALUE = 'Yes';
 
 /**
  * Custom category product grid component for B2B Commerce
@@ -25,9 +24,19 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
 
     /**
      * Number of products to show per page
+     * Set dynamically based on category from metadata, or can be overridden externally
      * @type {number}
      */
-    @api productsPerPage = 12;
+    @api
+    get productsPerPage() {
+        return this._productsPerPage || 12; // Fallback to 12 if not set
+    }
+    set productsPerPage(value) {
+        this._pagesSizeSetExternally = true;
+        this._productsPerPage = value;
+    }
+
+    _productsPerPage;
 
     /**
      * Show or hide product images
@@ -160,6 +169,27 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     @wire(MessageContext)
     messageContext;
 
+    // Store defaults from metadata
+    storeDefaults;
+
+    // Wire to get store defaults from metadata
+    @wire(getAllDefaults)
+    wiredStoreDefaults({ error, data }) {
+        if (data) {
+            this.storeDefaults = data;
+            console.log('customCategoryProductGrid: Loaded store defaults from metadata:', data);
+
+            // Set default page size based on category if not already set externally
+            if (!this._pagesSizeSetExternally) {
+                this.setDefaultPageSize();
+            }
+        } else if (error) {
+            console.error('customCategoryProductGrid: Error loading store defaults:', error);
+        }
+    }
+
+    _pagesSizeSetExternally = false;
+
     subscription = null;
 
     @wire(CurrentPageReference)
@@ -228,6 +258,39 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         window.removeEventListener('popstate', this.handleUrlChange);
         // Unsubscribe from Lightning Message Service
         this.unsubscribeFromFilterMessages();
+    }
+
+    /**
+     * Get parent product value from metadata
+     * Replaces hardcoded PARENT_VALUE constant
+     */
+    get parentValue() {
+        if (this.storeDefaults) {
+            return this.storeDefaults.parentProductValue;
+        }
+        // Fallback if metadata not loaded yet
+        return 'Yes';
+    }
+
+    /**
+     * Set default page size based on category and metadata
+     */
+    setDefaultPageSize() {
+        if (!this.storeDefaults || !this.categoryName) {
+            return;
+        }
+
+        // Use Quick Turn page size for Quick Turn category, otherwise use default
+        if (this.categoryName === this.storeDefaults.quickTurnCategoryName) {
+            this._productsPerPage = this.storeDefaults.quickTurnPageSize;
+            console.log('customCategoryProductGrid: Set page size to Quick Turn default:', this._productsPerPage);
+        } else if (this.categoryName === this.storeDefaults.myProductsCategoryName) {
+            this._productsPerPage = this.storeDefaults.defaultPageSize;
+            console.log('customCategoryProductGrid: Set page size to My Products default:', this._productsPerPage);
+        } else {
+            this._productsPerPage = this.storeDefaults.defaultPageSize;
+            console.log('customCategoryProductGrid: Set page size to fallback default:', this._productsPerPage);
+        }
     }
 
     /**
@@ -522,10 +585,10 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             refinementsArr.push({
                 attributeType: 'Custom',
                 nameOrId: FIELD_ISPARENT.fieldApiName,
-                values: [ PARENT_VALUE ],
+                values: [ this.parentValue ],
             });
             console.log('⚠️ Added parent restriction refinement - this will filter to parent products only');
-            console.log('⚠️ restrictToParents is TRUE - if you see 0 products, check if products have Is_Parent__c = Yes');
+            console.log('⚠️ restrictToParents is TRUE - if you see 0 products, check if products have Is_Parent__c = ' + this.parentValue);
         } else {
             console.log('✓ restrictToParents is FALSE - not filtering by parent products');
         }
