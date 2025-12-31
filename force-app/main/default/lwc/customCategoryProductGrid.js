@@ -11,16 +11,6 @@ import FIELD_ISPARENT from '@salesforce/schema/Product2.Is_Parent__c';
 // Value that specifies parent.
 const PARENT_VALUE = 'Yes';
 
-// Nested category mappings - map category IDs to their auto-applied filters
-const NESTED_CATEGORY_FILTERS = {
-    // Production nested category IDs
-    '0ZGPU0000002EQH4A2': { specialPrograms: ['QuickTurnDDT'] },   // Dri-Duck nested category
-    '0ZGPU0000002EOf4AM': { specialPrograms: ['RushReady'] },      // Rush Ready nested category
-
-    // Sandbox/Dev nested category IDs (if needed for backward compatibility)
-    // Add sandbox IDs here if they exist
-};
-
 /**
  * Custom category product grid component for B2B Commerce
  * Displays products using the customSearchProductCard component with custom pricing
@@ -116,13 +106,6 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             this.resolvedCategoryId = value;
             // Only fetch if component is already initialized (not during initial setup)
             if (this._isInitialized && this.webstoreId && this.resolvedCategoryId) {
-                console.log('Category changed from', oldValue, 'to', value);
-                // Clear filters when category changes
-                this.currentFilters = {};
-                this.clearFiltersFromSession();
-                // Re-apply nested category filters for new category
-                this.applyNestedCategoryFilters();
-                // Fetch products with new filters
                 this.fetchProducts();
             }
         }
@@ -172,7 +155,6 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
     // Store previous URL state to detect changes
     _previousSortRuleId = null;
     _previousRefinements = null;
-    _previousCategoryId = null;
 
     // Lightning Message Service for filter communication
     @wire(MessageContext)
@@ -185,41 +167,6 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this.pageRef = pageRef;
 
         if (pageRef && this._isInitialized) {
-            // Extract category ID from current page URL
-            let newCategoryId = null;
-            const url = window.location.href;
-            console.log('📍 handlePageReference - URL:', url);
-
-            const categoryMatch = url.match(/\/category\/[^\/]+\/([a-zA-Z0-9]{15,18})/);
-            console.log('  categoryMatch:', categoryMatch);
-
-            if (categoryMatch) {
-                newCategoryId = categoryMatch[1];
-                console.log('  Extracted categoryId from URL:', newCategoryId);
-            }
-
-            // Check if category changed via URL navigation
-            if (newCategoryId && newCategoryId !== this._previousCategoryId) {
-                console.log('🔄 Category changed via URL from', this._previousCategoryId, 'to', newCategoryId);
-                this._previousCategoryId = newCategoryId;
-                this.resolvedCategoryId = newCategoryId;
-                // Clear filters when category changes
-                console.log('  Clearing filters...');
-                this.currentFilters = {};
-                this.clearFiltersFromSession();
-                // Re-apply nested category filters for new category
-                console.log('  Re-applying nested category filters...');
-                this.applyNestedCategoryFilters();
-                // Reset to first page
-                this.currentPage = 1;
-                // Fetch products with new filters
-                console.log('  Fetching products...');
-                this.fetchProducts();
-                return; // Skip sort/filter processing since we're changing categories
-            } else if (newCategoryId) {
-                console.log('  Category unchanged:', newCategoryId);
-            }
-
             // Check for sort/filter changes in URL
             const urlParams = new URLSearchParams(window.location.search);
             // Native Salesforce uses 'sortRule' parameter
@@ -429,14 +376,8 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             console.warn('Category ID not found in URL or navigation context.');
             this.error = 'Category ID not found';
         } else {
-            // Track initial category ID for change detection
-            this._previousCategoryId = this.resolvedCategoryId;
-
             // Load saved filters from sessionStorage before fetching
             this.loadFiltersFromSession();
-
-            // Auto-apply filters for nested categories (Rush Ready, Dri-Duck)
-            this.applyNestedCategoryFilters();
 
             // Fetch products
             await this.fetchProducts();
@@ -1549,47 +1490,6 @@ handleShowProduct(event) {
         } catch (e) {
             console.error('customCategoryProductGrid: Error loading filters from session:', e);
             this.currentFilters = {};
-        }
-    }
-
-    /**
-     * Auto-apply filters for nested categories (Rush Ready, Dri-Duck)
-     * When user visits a nested category page, automatically apply the corresponding filter
-     */
-    applyNestedCategoryFilters() {
-        console.log('🔍 applyNestedCategoryFilters called');
-        console.log('  resolvedCategoryId:', this.resolvedCategoryId);
-        console.log('  NESTED_CATEGORY_FILTERS:', NESTED_CATEGORY_FILTERS);
-
-        if (!this.resolvedCategoryId) {
-            console.log('  ❌ No resolvedCategoryId, skipping');
-            return;
-        }
-
-        // Check if this category ID has auto-applied filters
-        const autoFilters = NESTED_CATEGORY_FILTERS[this.resolvedCategoryId];
-        console.log('  autoFilters for this category:', autoFilters);
-
-        if (autoFilters) {
-            console.log('  ✅ Detected nested category, auto-applying filters:', autoFilters);
-
-            // Merge auto-filters with current filters
-            for (const [filterId, values] of Object.entries(autoFilters)) {
-                if (!this.currentFilters[filterId]) {
-                    this.currentFilters[filterId] = [];
-                }
-                // Add values that aren't already present
-                for (const value of values) {
-                    if (!this.currentFilters[filterId].includes(value)) {
-                        this.currentFilters[filterId].push(value);
-                        console.log(`    Added ${value} to ${filterId} filter`);
-                    }
-                }
-            }
-
-            console.log('  Filters after nested category auto-apply:', JSON.stringify(this.currentFilters, null, 2));
-        } else {
-            console.log('  ℹ️  Not a nested category (or not in mapping), no auto-filters applied');
         }
     }
 
