@@ -12,9 +12,15 @@ public with sharing class StoreDefaultsHelper {
      */
     private static B2B_Store_Defaults__mdt getDefaults() {
         if (defaults == null) {
-            defaults = B2B_Store_Defaults__mdt.getInstance('Shop_Defaults');
-            if (defaults == null) {
-                throw new StoreDefaultsException('Shop_Defaults custom metadata record not found. Please ensure B2B_Store_Defaults__mdt.Shop_Defaults exists.');
+            try {
+                defaults = B2B_Store_Defaults__mdt.getInstance('Shop_Defaults');
+                if (defaults == null) {
+                    System.debug('WARNING: Shop_Defaults custom metadata record not found. Using fallback defaults.');
+                    System.debug('Please deploy B2B_Store_Defaults__mdt.Shop_Defaults metadata record.');
+                }
+            } catch (Exception e) {
+                System.debug('ERROR loading Shop_Defaults metadata: ' + e.getMessage());
+                System.debug('Using fallback defaults. Please ensure B2B_Store_Defaults__mdt is deployed.');
             }
         }
         return defaults;

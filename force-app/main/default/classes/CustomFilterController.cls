@@ -237,6 +237,17 @@ public with sharing class CustomFilterController {
         Set<Id> endUserIds = new Set<Id>();
 
         try {
+            // First, test if metadata is accessible
+            System.debug('=== Testing metadata access ===');
+            try {
+                String testField = StoreDefaultsHelper.getEndUserField();
+                System.debug('Successfully accessed metadata - End User Field: ' + testField);
+            } catch (Exception metaEx) {
+                System.debug('ERROR: Cannot access metadata: ' + metaEx.getMessage());
+                System.debug('ERROR Stack: ' + metaEx.getStackTraceString());
+                throw metaEx; // Re-throw to trigger fallback values
+            }
+
             Id currentUserId = UserInfo.getUserId();
             System.debug('Getting end user values for userId: ' + currentUserId);
             System.debug('includeAccountEndUsers: ' + includeAccountEndUsers);
