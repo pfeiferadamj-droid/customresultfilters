@@ -3,6 +3,7 @@ import { CurrentPageReference } from 'lightning/navigation';
 import { publish, MessageContext } from 'lightning/messageService';
 import FILTER_CHANGE_CHANNEL from '@salesforce/messageChannel/FilterChangeChannel__c';
 import getFilterData from '@salesforce/apex/CustomFilterController.getFilterData';
+import getAllDefaults from '@salesforce/apex/StoreDefaultsHelper.getAllDefaults';
 
 /**
  * Custom Results Filter Component
@@ -25,27 +26,57 @@ export default class CustomResultsFilter extends LightningElement {
     // My Products end user scope (show all account end users vs just user's products)
     showAllAccountEndUsers = false;
 
+    // Store defaults from metadata
+    storeDefaults;
+
     // Lightning Message Service context
     @wire(MessageContext)
     messageContext;
 
-    // Category slug to display name mapping
-    categoryMapping = {
-        'quick-turn': 'Quick Turn',
-        'my-products': 'My Products',
-        'detail': 'My Products'  // /category/detail/{id} format maps to My Products
-    };
+    // Wire to get store defaults from metadata
+    @wire(getAllDefaults)
+    wiredStoreDefaults({ error, data }) {
+        if (data) {
+            this.storeDefaults = data;
+            console.log('customResultsFilter: Loaded store defaults from metadata:', data);
+        } else if (error) {
+            console.error('customResultsFilter: Error loading store defaults:', error);
+        }
+    }
 
-    // Category ID to display name mapping (for URLs without slugs)
-    categoryIdMapping = {
-        // Production category IDs
-        '0ZGPU0000001iob4AA': 'My Products',  // My Products category (production)
-        '0ZGPU0000001iqD4AQ': 'Quick Turn',   // Quick Turn category (production) - Called "Essentials" in production
+    // Category slug to display name mapping (dynamically built from metadata)
+    get categoryMapping() {
+        if (!this.storeDefaults) {
+            // Fallback to hardcoded values if metadata not loaded yet
+            return {
+                'quick-turn': 'Quick Turn',
+                'my-products': 'My Products',
+                'detail': 'My Products'
+            };
+        }
 
-        // Sandbox/Dev category IDs (keep for backward compatibility)
-        '0ZGbb000000FFOXGA4': 'My Products',
-        '0ZGbb000000F5llGAC': 'Quick Turn'
-    };
+        return {
+            [this.storeDefaults.quickTurnUrlSlug]: this.storeDefaults.quickTurnCategoryName,
+            [this.storeDefaults.myProductsUrlSlug]: this.storeDefaults.myProductsCategoryName,
+            [this.storeDefaults.detailUrlSlug]: this.storeDefaults.myProductsCategoryName
+        };
+    }
+
+    // Category ID to display name mapping (dynamically built from metadata)
+    get categoryIdMapping() {
+        if (!this.storeDefaults) {
+            // Fallback to hardcoded values if metadata not loaded yet
+            return {
+                '0ZGPU0000001iob4AA': 'My Products',
+                '0ZGPU0000001iqD4AQ': 'Quick Turn'
+            };
+        }
+
+        return {
+            [this.storeDefaults.myProductsCategoryId]: this.storeDefaults.myProductsCategoryName,
+            [this.storeDefaults.quickTurnCategoryId]: this.storeDefaults.quickTurnCategoryName
+        };
+    }
 
     // Wire to get current page reference (URL parameters)
     @wire(CurrentPageReference)
@@ -159,6 +190,10 @@ export default class CustomResultsFilter extends LightningElement {
      * Check if current category is Quick Turn
      */
     get isQuickTurn() {
+        if (this.storeDefaults) {
+            return this.currentCategory === this.storeDefaults.quickTurnCategoryName;
+        }
+        // Fallback if metadata not loaded yet
         return this.currentCategory === 'Quick Turn';
     }
 
@@ -166,6 +201,10 @@ export default class CustomResultsFilter extends LightningElement {
      * Check if current category is My Products
      */
     get isMyProducts() {
+        if (this.storeDefaults) {
+            return this.currentCategory === this.storeDefaults.myProductsCategoryName;
+        }
+        // Fallback if metadata not loaded yet
         return this.currentCategory === 'My Products';
     }
 
