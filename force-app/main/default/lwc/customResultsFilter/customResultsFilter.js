@@ -48,8 +48,9 @@ export default class CustomResultsFilter extends LightningElement {
     get categoryMapping() {
         if (!this.storeDefaults) {
             // Fallback to hardcoded values if metadata not loaded yet
+            // IMPORTANT: These must match production metadata exactly!
             return {
-                'quick-turn': 'Quick Turn',
+                'quick-turn': 'Essentials by Caps Direct',
                 'my-products': 'My Products',
                 'detail': 'My Products'
             };
@@ -66,9 +67,10 @@ export default class CustomResultsFilter extends LightningElement {
     get categoryIdMapping() {
         if (!this.storeDefaults) {
             // Fallback to hardcoded values if metadata not loaded yet
+            // IMPORTANT: These must match production metadata exactly!
             return {
                 '0ZGPU0000001iob4AA': 'My Products',
-                '0ZGPU0000001iqD4AQ': 'Quick Turn'
+                '0ZGPU0000001iqD4AQ': 'Essentials by Caps Direct'
             };
         }
 
@@ -194,7 +196,8 @@ export default class CustomResultsFilter extends LightningElement {
             return this.currentCategory === this.storeDefaults.quickTurnCategoryName;
         }
         // Fallback if metadata not loaded yet
-        return this.currentCategory === 'Quick Turn';
+        // IMPORTANT: Must match production metadata exactly!
+        return this.currentCategory === 'Essentials by Caps Direct';
     }
 
     /**
