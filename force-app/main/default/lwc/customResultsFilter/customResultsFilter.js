@@ -50,7 +50,7 @@ export default class CustomResultsFilter extends LightningElement {
             // Fallback to hardcoded values if metadata not loaded yet
             // IMPORTANT: These must match production metadata exactly!
             return {
-                'quick-turn': 'Essentials by Caps Direct',
+                'essentials-by-caps-direct': 'Essentials by Caps Direct',
                 'my-products': 'My Products',
                 'detail': 'My Products'
             };

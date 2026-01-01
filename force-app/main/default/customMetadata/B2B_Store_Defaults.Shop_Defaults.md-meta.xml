@@ -12,7 +12,7 @@
     </values>
     <values>
         <field>Quick_Turn_Category_Name__c</field>
-        <value xsi:type="xsd:string">Quick Turn</value>
+        <value xsi:type="xsd:string">Essentials by Caps Direct</value>
     </values>
     <values>
         <field>My_Products_Category_Name__c</field>
@@ -100,7 +100,7 @@
     </values>
     <values>
         <field>Quick_Turn_URL_Slug__c</field>
-        <value xsi:type="xsd:string">quick-turn</value>
+        <value xsi:type="xsd:string">essentials-by-caps-direct</value>
     </values>
     <values>
         <field>My_Products_URL_Slug__c</field>
