@@ -1,0 +1,93 @@
+<template>
+    <div class="grid-container">
+        <!-- Loading State -->
+        <template if:true={isLoading}>
+            <div class="loading-container">
+                <lightning-spinner alternative-text="Loading products..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- Error State -->
+        <template if:true={hasError}>
+            <div class="error-container">
+                <p class="error-message">Error loading products: {errorMessage}</p>
+            </div>
+        </template>
+
+        <!-- No Products State -->
+        <template if:true={hasNoProducts}>
+            <div class="no-products-container">
+                <p class="no-products-message">No products found in this category.</p>
+            </div>
+        </template>
+
+        <!-- Products Grid -->
+        <template if:false={isLoading}>
+            <template if:false={hasError}>
+                <div class={gridClass}>
+                    <template for:each={productList} for:item="product">
+                        <c-custom-search-product-card
+                            key={product.id}
+                            display-data={product}
+                            configuration={cardConfiguration}
+                            current-pricebook-id={currentPricebookId}
+                            special-pricebook-ids={specialPricebookIds}
+                            onshowproduct={handleShowProduct}
+                            onaddproducttocart={handleAddToCart}>
+                        </c-custom-search-product-card>
+                    </template>
+                </div>
+
+                <!-- Pagination Controls -->
+                <template if:true={showPagination}>
+                    <div class="pagination-container">
+                        <div class="pagination-controls">
+                            <!-- Previous Arrow -->
+                            <button
+                                class="pagination-arrow"
+                                onclick={handlePreviousPage}
+                                disabled={isPreviousDisabled}
+                                aria-label="Previous page">
+                                <lightning-icon
+                                    icon-name="utility:chevronleft"
+                                    size="x-small"
+                                    alternative-text="Previous">
+                                </lightning-icon>
+                            </button>
+
+                            <!-- Page Numbers -->
+                            <template for:each={pageNumbers} for:item="page">
+                                <template if:true={page.isEllipsis}>
+                                    <span key={page.key} class="pagination-ellipsis">{page.label}</span>
+                                </template>
+                                <template if:false={page.isEllipsis}>
+                                    <button
+                                        key={page.key}
+                                        class={page.className}
+                                        data-page={page.number}
+                                        onclick={handlePageClick}
+                                        aria-label={page.label}>
+                                        {page.label}
+                                    </button>
+                                </template>
+                            </template>
+
+                            <!-- Next Arrow -->
+                            <button
+                                class="pagination-arrow"
+                                onclick={handleNextPage}
+                                disabled={isNextDisabled}
+                                aria-label="Next page">
+                                <lightning-icon
+                                    icon-name="utility:chevronright"
+                                    size="x-small"
+                                    alternative-text="Next">
+                                </lightning-icon>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </template>
+        </template>
+    </div>
+</template>
