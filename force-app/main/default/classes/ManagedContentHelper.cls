@@ -52,33 +52,39 @@ public without sharing class ManagedContentHelper {
             return productImageMap;
         }
 
-        // Query ProductMedia with cached ContentKey__c field
-        // ContentKey__c is automatically populated by ProductMediaTrigger
+        // Query ProductMedia with ElectronicMedia lookup to ManagedContent
+        // Use the standard ElectronicMediaId field which is a lookup to ManagedContent
         try {
             List<ProductMedia> mediaList = [
-                SELECT ProductId, ContentKey__c
+                SELECT ProductId, ElectronicMedia.ContentKey
                 FROM ProductMedia
                 WHERE ProductId IN :productIds
-                AND ContentKey__c != null
+                AND ElectronicMediaId != null
                 ORDER BY SortOrder ASC NULLS LAST
             ];
 
-            System.debug('Found ' + mediaList.size() + ' ProductMedia records with ContentKey__c');
+            System.debug('Found ' + mediaList.size() + ' ProductMedia records with ElectronicMedia');
 
-            // Build image URLs using cached ContentKey
+            // Build image URLs using ElectronicMedia.ContentKey
             for (ProductMedia pm : mediaList) {
-                if (!productImageMap.containsKey(pm.ProductId) && String.isNotBlank(pm.ContentKey__c)) {
-                    String imageUrl = buildImageUrl(pm.ContentKey__c, channelId, orgId);
-                    if (imageUrl != null) {
-                        productImageMap.put(pm.ProductId, imageUrl);
-                        System.debug('SUCCESS: Built URL for Product ' + pm.ProductId + ' using cached ContentKey: ' + imageUrl);
+                if (!productImageMap.containsKey(pm.ProductId)) {
+                    // Access ContentKey through the ElectronicMedia relationship
+                    if (pm.ElectronicMedia != null) {
+                        String contentKey = pm.ElectronicMedia.ContentKey;
+                        if (String.isNotBlank(contentKey)) {
+                            String imageUrl = buildImageUrl(contentKey, channelId, orgId);
+                            if (imageUrl != null) {
+                                productImageMap.put(pm.ProductId, imageUrl);
+                                System.debug('SUCCESS: Built URL for Product ' + pm.ProductId + ' using ElectronicMedia.ContentKey: ' + imageUrl);
+                            }
+                        }
                     }
                 }
             }
 
             if (productImageMap.isEmpty()) {
-                System.debug('WARNING: No ProductMedia records with ContentKey__c found');
-                System.debug('Ensure ProductMediaTrigger is active and ContentKey__c has been populated');
+                System.debug('WARNING: No ProductMedia records with ElectronicMediaId found');
+                System.debug('Ensure ProductMedia records are linked to ManagedContent via ElectronicMediaId');
                 System.debug('NOTE: This is likely why images are not rendering!');
             } else {
                 System.debug('Successfully built ' + productImageMap.size() + ' image URLs');
