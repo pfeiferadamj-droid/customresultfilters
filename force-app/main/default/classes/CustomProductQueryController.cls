@@ -352,16 +352,30 @@ public with sharing class CustomProductQueryController {
             if (specialPrograms != null && !specialPrograms.isEmpty()) {
                 // Build OR conditions for special programs
                 // Supports: Dri-Duck and Rush Ready values from metadata
+                System.debug('  Processing special programs filter:');
+                System.debug('    specialPrograms list: ' + specialPrograms);
+                System.debug('    driDuckValue from metadata: ' + driDuckValue);
+                System.debug('    rushReadyValue from metadata: ' + rushReadyValue);
+
                 List<String> programConditions = new List<String>();
                 for (String programValue : specialPrograms) {
-                    if (programValue == driDuckValue) {
-                        programConditions.add(specialProgramField + ' LIKE \'%' + driDuckValue + '%\'');
-                    } else if (programValue == rushReadyValue) {
-                        programConditions.add(rushReadyField + ' = true');
+                    System.debug('    Checking programValue: "' + programValue + '"');
+                    if (programValue != null && programValue.equals(driDuckValue)) {
+                        String condition = specialProgramField + ' LIKE \'%' + driDuckValue + '%\'';
+                        programConditions.add(condition);
+                        System.debug('      Matched Dri-Duck, added condition: ' + condition);
+                    } else if (programValue != null && programValue.equals(rushReadyValue)) {
+                        String condition = rushReadyField + ' = true';
+                        programConditions.add(condition);
+                        System.debug('      Matched Rush Ready, added condition: ' + condition);
+                    } else {
+                        System.debug('      No match for value: "' + programValue + '"');
                     }
                 }
                 if (!programConditions.isEmpty()) {
-                    query += 'AND (' + String.join(programConditions, ' OR ') + ') ';
+                    String combinedCondition = 'AND (' + String.join(programConditions, ' OR ') + ') ';
+                    query += combinedCondition;
+                    System.debug('    Added to query: ' + combinedCondition);
                 }
             }
 
@@ -435,9 +449,9 @@ public with sharing class CustomProductQueryController {
                 // Build OR conditions for special programs
                 List<String> programConditions = new List<String>();
                 for (String programValue : specialPrograms) {
-                    if (programValue == driDuckValue) {
+                    if (programValue != null && programValue.equals(driDuckValue)) {
                         programConditions.add(specialProgramField + ' LIKE \'%' + driDuckValue + '%\'');
-                    } else if (programValue == rushReadyValue) {
+                    } else if (programValue != null && programValue.equals(rushReadyValue)) {
                         programConditions.add(rushReadyField + ' = true');
                     }
                 }
