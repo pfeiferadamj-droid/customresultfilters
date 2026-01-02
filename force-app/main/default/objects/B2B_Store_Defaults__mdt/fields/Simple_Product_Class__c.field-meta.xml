@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Simple_Product_Class__c</fullName>
+    <label>Simple Product Class Value</label>
+    <description>Value for Simple product class</description>
+    <type>Text</type>
+    <length>50</length>
+    <required>false</required>
+</CustomField>

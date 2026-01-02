@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="recordId" type="String" label="Record Id" />
+        </targetConfig>
+        <targetConfig targets="lightningCommunity__Page,lightningCommunity__Default">
+            <property name="categoryOverride" type="String" label="Category Override" description="Manually specify the category name (e.g., 'Quick Turn', 'My Products'). Leave blank to auto-detect from URL." />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

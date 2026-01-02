@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Quick_Turn_Category_Name__c</fullName>
+    <label>Quick Turn Category Name</label>
+    <description>Display name for Quick Turn category</description>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+</CustomField>

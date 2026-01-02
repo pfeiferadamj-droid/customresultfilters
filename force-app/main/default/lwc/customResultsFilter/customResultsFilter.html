@@ -1,0 +1,31 @@
+<template>
+    <div class="custom-results-filter">
+        <!-- Loading Spinner -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading filters..." size="small"></lightning-spinner>
+        </template>
+
+        <!-- Error Message -->
+        <template if:true={error}>
+            <div class="slds-box slds-theme_error slds-m-bottom_small">
+                <p>Error loading filters: {error.body.message}</p>
+            </div>
+        </template>
+
+        <!-- Filter Panel -->
+        <template if:false={isLoading}>
+            <template if:true={displayFilters}>
+                <c-custom-filter-panel
+                    category={currentCategory}
+                    filters={displayFilters}
+                    is-my-products={isMyProducts}
+                    account-name={accountName}
+                    show-all-account-end-users={showAllAccountEndUsers}
+                    onfilterchange={handleFilterChange}
+                    onclearall={handleClearAll}
+                    onenduserscope={handleEndUserScopeToggle}>
+                </c-custom-filter-panel>
+            </template>
+        </template>
+    </div>
+</template>
