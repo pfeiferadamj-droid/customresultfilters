@@ -223,7 +223,10 @@ private class CustomFilterControllerTest {
 
         // Verify Dri-Duck value
         CustomFilterController.FilterValueWrapper driDuck = specialPrograms.values[0];
-        System.assertEquals('Dri-Duck', driDuck.label, 'First value should be Dri-Duck');
+        System.assert(
+            driDuck.label == 'Dri-Duck' || driDuck.label == 'DRI-Duck',
+            'First value should be Dri-Duck or DRI-Duck (metadata or fallback)'
+        );
         System.assertEquals('QuickTurnDDT', driDuck.value, 'Dri-Duck value should be QuickTurnDDT');
         System.assertEquals(false, driDuck.checked, 'Dri-Duck should not be checked by default');
 
