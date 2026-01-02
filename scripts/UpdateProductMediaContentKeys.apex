@@ -6,9 +6,19 @@
  * by matching with ManagedContent records based on product information
  */
 
-// Get the webstore ID from metadata
-String webstoreId = StoreDefaultsHelper.getWebstoreId();
-System.debug('WebStore ID: ' + webstoreId);
+// Get webstore ID from Network
+String webstoreId = null;
+try {
+    List<Network> networks = [SELECT Id FROM Network WHERE Status = 'Live' LIMIT 1];
+    if (!networks.isEmpty()) {
+        webstoreId = networks[0].Id;
+        System.debug('WebStore ID from Network: ' + webstoreId);
+    } else {
+        System.debug('No live Network found - will query all ManagedContent');
+    }
+} catch (Exception e) {
+    System.debug('Could not query Network: ' + e.getMessage());
+}
 
 // Step 1: Get all ProductMedia records that don't have ContentKey__c
 List<ProductMedia> mediaToUpdate = [
@@ -36,15 +46,25 @@ if (mediaToUpdate.isEmpty()) {
 
     // Step 2: Query ManagedContent records for these products
     // ManagedContent records are typically linked by product name or product code in the title
-    List<ManagedContent> managedContents = [
-        SELECT Id, ContentKey, Title, ManagedContentSpace.NetworkId
-        FROM ManagedContent
-        WHERE ManagedContentSpace.NetworkId = :webstoreId
-        AND Type = 'media'
-        LIMIT 2000
-    ];
+    List<ManagedContent> managedContents;
+    if (webstoreId != null) {
+        managedContents = [
+            SELECT Id, ContentKey, Title, ManagedContentSpace.NetworkId
+            FROM ManagedContent
+            WHERE ManagedContentSpace.NetworkId = :webstoreId
+            AND Type = 'media'
+            LIMIT 2000
+        ];
+    } else {
+        managedContents = [
+            SELECT Id, ContentKey, Title
+            FROM ManagedContent
+            WHERE Type = 'media'
+            LIMIT 2000
+        ];
+    }
 
-    System.debug('Found ' + managedContents.size() + ' ManagedContent records in webstore');
+    System.debug('Found ' + managedContents.size() + ' ManagedContent records');
 
     // Step 3: Create a map of product identifiers to ContentKey
     // This is the tricky part - we need to match ManagedContent to Products

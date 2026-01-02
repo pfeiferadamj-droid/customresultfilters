@@ -5,9 +5,19 @@
 
 System.debug('=== DIAGNOSTIC SCRIPT FOR PRODUCT MEDIA ===\n');
 
-// Get webstore ID
-String webstoreId = StoreDefaultsHelper.getWebstoreId();
-System.debug('WebStore ID: ' + webstoreId);
+// Get webstore ID from Network
+String webstoreId = null;
+try {
+    List<Network> networks = [SELECT Id FROM Network WHERE Status = 'Live' LIMIT 1];
+    if (!networks.isEmpty()) {
+        webstoreId = networks[0].Id;
+        System.debug('WebStore ID from Network: ' + webstoreId);
+    } else {
+        System.debug('No live Network found - will query all ManagedContent');
+    }
+} catch (Exception e) {
+    System.debug('Could not query Network: ' + e.getMessage());
+}
 
 // 1. Check ProductMedia records
 List<ProductMedia> allMedia = [
@@ -47,12 +57,21 @@ System.debug('Rush Ready products in ProductMedia: ' + rushReadyProducts);
 System.debug('\n--- MANAGED CONTENT ANALYSIS ---');
 
 try {
-    List<ManagedContent> contents = [
-        SELECT Id, ContentKey, Title, Type, ManagedContentSpace.NetworkId
-        FROM ManagedContent
-        WHERE ManagedContentSpace.NetworkId = :webstoreId
-        LIMIT 100
-    ];
+    List<ManagedContent> contents;
+    if (webstoreId != null) {
+        contents = [
+            SELECT Id, ContentKey, Title, Type, ManagedContentSpace.NetworkId
+            FROM ManagedContent
+            WHERE ManagedContentSpace.NetworkId = :webstoreId
+            LIMIT 100
+        ];
+    } else {
+        contents = [
+            SELECT Id, ContentKey, Title, Type
+            FROM ManagedContent
+            LIMIT 100
+        ];
+    }
 
     System.debug('Total ManagedContent records: ' + contents.size());
 
