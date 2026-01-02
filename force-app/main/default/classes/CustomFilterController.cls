@@ -19,9 +19,9 @@ public with sharing class CustomFilterController {
         String quickTurnName = StoreDefaultsHelper.getQuickTurnCategoryName();
         String myProductsName = StoreDefaultsHelper.getMyProductsCategoryName();
 
-        if (category == quickTurnName) {
+        if (category != null && category.equals(quickTurnName)) {
             filterData.quickTurnFilters = getQuickTurnFilters();
-        } else if (category == myProductsName) {
+        } else if (category != null && category.equals(myProductsName)) {
             filterData.myProductsFilters = getMyProductsFilters(includeAccountEndUsers);
             // Get account name for My Products category
             filterData.accountName = getUserAccountName();
