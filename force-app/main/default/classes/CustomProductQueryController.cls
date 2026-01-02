@@ -2,7 +2,7 @@
  * Custom controller for querying products with filters that cannot be handled by Commerce Search API
  * Specifically handles End_User__c (lookup field) filtering via direct SOQL queries
  */
-public with sharing class CustomProductQueryController {
+public without sharing class CustomProductQueryController {
 
     /**
      * Query products by End User using direct SOQL
@@ -574,3 +574,4 @@ public with sharing class CustomProductQueryController {
         @AuraEnabled public Decimal unitPrice { get; set; }
     }
 }
+
