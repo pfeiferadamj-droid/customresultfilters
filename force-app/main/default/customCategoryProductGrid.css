@@ -31,6 +31,73 @@
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 1.5rem;
     padding: 1rem;
+    align-items: start;
+}
+
+/* Ensure all product cards in the grid are centered and aligned properly */
+.product-grid c-custom-search-product-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 100%;
+}
+
+/* Center align all content within product cards */
+.product-grid c-custom-search-product-card::part(container) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Fixed height container for product images to ensure consistent spacing */
+.product-grid c-custom-search-product-card::part(image-container),
+.product-grid img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Ensure text blocks are center-aligned */
+.product-grid c-custom-search-product-card::part(title),
+.product-grid c-custom-search-product-card::part(sku),
+.product-grid c-custom-search-product-card::part(price),
+.product-grid c-custom-search-product-card::part(description) {
+    text-align: center;
+    width: 100%;
+}
+
+/* Additional centering for nested elements within product cards */
+.product-grid :is(c-custom-search-product-card, c-search-product-card) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+
+/* Force center alignment for all images in the grid */
+.product-grid img,
+.product-grid [class*="image"],
+.product-grid [class*="Image"] {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+}
+
+/* Center all text content */
+.product-grid [class*="title"],
+.product-grid [class*="name"],
+.product-grid [class*="price"],
+.product-grid [class*="sku"],
+.product-grid h1, .product-grid h2, .product-grid h3,
+.product-grid h4, .product-grid h5, .product-grid h6,
+.product-grid p, .product-grid a {
+    text-align: center !important;
 }
 
 .product-list {
@@ -161,6 +228,8 @@
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 1rem;
         padding: 0.5rem;
+        align-items: start;
+        justify-items: center;
     }
 
     .controls-bar {
@@ -170,6 +239,11 @@
 
     .sort-controls {
         width: 100%;
+    }
+
+    /* Maintain center alignment on mobile */
+    .product-grid :is(c-custom-search-product-card, c-search-product-card) {
+        max-width: 100%;
     }
 
     .pagination-controls {
@@ -188,6 +262,7 @@
 @media (max-width: 480px) {
     .product-grid {
         grid-template-columns: 1fr;
+        justify-items: center;
     }
 
     .pagination-number,
@@ -200,5 +275,18 @@
     .pagination-ellipsis {
         min-width: 1.5rem;
         font-size: 0.6875rem;
+    }
+}
+
+/* Additional rule for better image consistency across the grid */
+@media (min-width: 769px) {
+    .product-grid {
+        justify-items: center;
+    }
+
+    /* Ensure consistent spacing for product images */
+    .product-grid img {
+        min-height: 200px;
+        max-height: 300px;
     }
 }
