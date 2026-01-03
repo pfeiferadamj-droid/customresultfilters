@@ -84,7 +84,7 @@ public with sharing class ProductGridConfigController {
             System.debug('ProductGridConfigController - Matched Scenario 4: Guest + My Products (fallback)');
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = guestPricebookId;
-            config.specialPricebookIds = guestPricebookId;
+            config.specialPricebookIds = null;  // No 'c' suffix for My Products
             config.restrictToParents = true;
         }
         // Default: Use guest pricebook as safe fallback
