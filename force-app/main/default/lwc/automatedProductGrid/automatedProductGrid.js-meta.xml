@@ -10,7 +10,7 @@
     </targets>
     <targetConfigs>
         <targetConfig targets="lightningCommunity__Default">
-            <property name="categoryId" type="String" label="Category ID" description="The ID of the category to display products from" required="true" />
+            <property name="categoryId" type="String" label="Category ID (Optional)" description="Optional: Override category ID. If not provided, will be auto-detected from the URL" required="false" />
             <property name="addToCartButtonText" type="String" label="Add to Cart Button Text" default="Add to Cart" description="Text for the add to cart button" />
             <property name="viewOptionsButtonText" type="String" label="View Options Button Text" default="View Options" description="Text for the view options button" />
             <property name="quantitySelectorLabelText" type="String" label="Quantity Selector Label" default="Quantity" description="Label for the quantity selector" />

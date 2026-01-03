@@ -1,14 +1,16 @@
 import { LightningElement, api, wire } from 'lwc';
+import { CurrentPageReference } from 'lightning/navigation';
 import getProductGridConfig from '@salesforce/apex/ProductGridConfigController.getProductGridConfig';
 
 /**
  * Automated Product Grid Controller
  * Automatically configures the customCategoryProductGrid based on user profile and category
+ * Detects category from URL automatically
  */
 export default class AutomatedProductGrid extends LightningElement {
     /**
      * Category ID to display products from
-     * This is the only required input property
+     * Optional - will be auto-detected from URL if not provided
      */
     @api categoryId;
 
@@ -24,20 +26,74 @@ export default class AutomatedProductGrid extends LightningElement {
     error;
     isLoading = true;
 
+    // Resolved category ID (from URL or @api)
+    resolvedCategoryId;
+
     /**
-     * Wire to get configuration from Apex based on categoryId
+     * Wire to get current page reference (URL)
+     * Auto-detect category ID from URL if not provided via @api
      */
-    @wire(getProductGridConfig, { categoryId: '$categoryId' })
+    @wire(CurrentPageReference)
+    getPageReference(pageRef) {
+        if (pageRef) {
+            // If categoryId is explicitly provided, use it
+            if (this.categoryId) {
+                this.resolvedCategoryId = this.categoryId;
+            } else {
+                // Otherwise, extract from URL
+                this.extractCategoryIdFromUrl(pageRef);
+            }
+        }
+    }
+
+    /**
+     * Extract category ID from page reference
+     * Supports Experience Cloud URL format: /category/slug/categoryId
+     */
+    extractCategoryIdFromUrl(pageRef) {
+        // Method 1: Parse URL path for Experience Cloud sites
+        // URL format: /category/quick-turn/0ZGbb000000F5llGAC or /category/my-products/0ZGbb000000FFOXGA4
+        const url = window.location.href;
+        const categoryMatch = url.match(/\/category\/([^\/]+)(?:\/([a-zA-Z0-9]{15,18}))?/);
+
+        if (categoryMatch && categoryMatch[2]) {
+            this.resolvedCategoryId = categoryMatch[2];
+            console.log('automatedProductGrid: Detected category ID from URL:', this.resolvedCategoryId);
+            return;
+        }
+
+        // Method 2: Check query parameters
+        if (pageRef.state?.categoryId) {
+            this.resolvedCategoryId = pageRef.state.categoryId;
+            console.log('automatedProductGrid: Detected category ID from query param:', this.resolvedCategoryId);
+            return;
+        }
+
+        // Method 3: Check for recordId (direct category record page)
+        if (pageRef.attributes?.recordId) {
+            this.resolvedCategoryId = pageRef.attributes.recordId;
+            console.log('automatedProductGrid: Detected category ID from recordId:', this.resolvedCategoryId);
+            return;
+        }
+
+        console.warn('automatedProductGrid: Could not detect category ID from URL');
+    }
+
+    /**
+     * Wire to get configuration from Apex based on resolved categoryId
+     */
+    @wire(getProductGridConfig, { categoryId: '$resolvedCategoryId' })
     wiredConfig({ error, data }) {
         if (data) {
             this.config = data;
             this.error = undefined;
             this.isLoading = false;
+            console.log('automatedProductGrid: Loaded configuration:', data);
         } else if (error) {
             this.error = error;
             this.config = undefined;
             this.isLoading = false;
-            console.error('Error loading product grid configuration:', error);
+            console.error('automatedProductGrid: Error loading configuration:', error);
         }
     }
 
@@ -56,10 +112,10 @@ export default class AutomatedProductGrid extends LightningElement {
     }
 
     /**
-     * Get category ID from config
+     * Get category ID to pass to child component
      */
-    get resolvedCategoryId() {
-        return this.config?.categoryId || this.categoryId;
+    get finalCategoryId() {
+        return this.config?.categoryId || this.resolvedCategoryId;
     }
 
     /**
