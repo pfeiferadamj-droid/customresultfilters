@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Search_ProductCard_addToCartAriaLabel</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add to Cart Aria Label for Product Card</shortDescription>
+        <value>Add {productTitle} to cart</value>
+    </labels>
+    <labels>
+        <fullName>Search_ProductCard_viewOptionsAriaLabel</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>View Options Aria Label for Product Card</shortDescription>
+        <value>View options for {productTitle}</value>
+    </labels>
+    <labels>
+        <fullName>Search_ProductCard_subscriptionOptions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Subscription Options Label</shortDescription>
+        <value>Subscription Options Available</value>
+    </labels>
+    <labels>
+        <fullName>Search_ProductCard_variationAttribute</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Variation Attribute Label</shortDescription>
+        <value>Variation</value>
+    </labels>
+</CustomLabels>
