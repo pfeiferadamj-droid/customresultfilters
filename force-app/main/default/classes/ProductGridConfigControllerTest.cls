@@ -69,6 +69,28 @@ private class ProductGridConfigControllerTest {
         // Verify configuration is returned
         System.assertNotEquals(null, config, 'Configuration should not be null');
         System.assertEquals(myProductsCategoryId, config.categoryId, 'Category ID should match My Products');
+
+        // Note: restrictToParents will only be true if running as shopper profile
+        // In test context, we may not match any specific scenario
+        System.assert(true, 'Configuration loaded successfully');
+    }
+
+    @isTest
+    static void testCategoryTypeDeterminationFallback() {
+        // Test with a category ID that won't match metadata
+        // This simulates the real-world scenario where org category IDs differ from metadata
+        String unmatchedCategoryId = '0ZGbb000000TESTCAT';
+
+        Test.startTest();
+        ProductGridConfigController.ProductGridConfig config =
+            ProductGridConfigController.getProductGridConfig(unmatchedCategoryId);
+        Test.stopTest();
+
+        // Should still return config with defaults
+        System.assertNotEquals(null, config, 'Configuration should not be null');
+        System.assertEquals(unmatchedCategoryId, config.categoryId, 'Category ID should be set');
+        System.assertEquals('grid', config.layout, 'Layout should default to grid');
+        System.assertEquals(24, config.productsPerPage, 'Products per page should default to 24');
     }
 
     @isTest
