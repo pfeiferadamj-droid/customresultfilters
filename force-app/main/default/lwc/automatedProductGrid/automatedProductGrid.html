@@ -1,0 +1,39 @@
+<template>
+    <template if:true={isLoading}>
+        <div class="slds-spinner_container">
+            <div role="status" class="slds-spinner slds-spinner_small">
+                <span class="slds-assistive-text">Loading...</span>
+                <div class="slds-spinner__dot-a"></div>
+                <div class="slds-spinner__dot-b"></div>
+            </div>
+        </div>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error">
+            <p>Error loading product grid configuration</p>
+            <p>{error.body.message}</p>
+        </div>
+    </template>
+
+    <template if:true={hasConfig}>
+        <c-custom-category-product-grid
+            webstore-id={webstoreId}
+            category-id={resolvedCategoryId}
+            category-name={categoryName}
+            layout={layout}
+            products-per-page={productsPerPage}
+            show-product-image={showProductImage}
+            show-call-to-action-button={showCallToActionButton}
+            show-quantity-selector={showQuantitySelector}
+            show-negotiated-price={showNegotiatedPrice}
+            show-listing-price={showListingPrice}
+            restrict-to-parents={restrictToParents}
+            current-pricebook-id={currentPricebookId}
+            special-pricebook-ids={specialPricebookIds}
+            add-to-cart-button-text={addToCartButtonText}
+            view-options-button-text={viewOptionsButtonText}
+            quantity-selector-label-text={quantitySelectorLabelText}>
+        </c-custom-category-product-grid>
+    </template>
+</template>

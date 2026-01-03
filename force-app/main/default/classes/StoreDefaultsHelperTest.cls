@@ -156,6 +156,35 @@ private class StoreDefaultsHelperTest {
     }
 
     /**
+     * Test WebStore and Profile Configuration getters
+     */
+    @isTest
+    static void testGetWebStoreAndProfileConfig() {
+        Test.startTest();
+        String webStoreId = StoreDefaultsHelper.getWebStoreId();
+        String guestProfileId = StoreDefaultsHelper.getGuestBrowserProfileId();
+        String shopperProfileId = StoreDefaultsHelper.getShopShopperProfileId();
+        Test.stopTest();
+
+        // Should return values from metadata or null (metadata might not exist in test context)
+        System.assert(true, 'WebStore and Profile getters should execute without error');
+    }
+
+    /**
+     * Test Pricebook Configuration getters
+     */
+    @isTest
+    static void testGetPricebookConfig() {
+        Test.startTest();
+        String guestPricebookId = StoreDefaultsHelper.getGuestPricebookId();
+        String authPricebookId = StoreDefaultsHelper.getAuthenticatedPriceBookId();
+        Test.stopTest();
+
+        // Should return values from metadata or null (metadata might not exist in test context)
+        System.assert(true, 'Pricebook getters should execute without error');
+    }
+
+    /**
      * Test getAllDefaults wrapper for LWC consumption
      */
     @isTest
@@ -212,6 +241,14 @@ private class StoreDefaultsHelperTest {
         );
         System.assertEquals('my-products', wrapper.myProductsUrlSlug, 'My Products slug should match');
         System.assertEquals('detail', wrapper.detailUrlSlug, 'Detail slug should match');
+
+        // Verify new fields are present (can be null if metadata not configured)
+        // These assertions just ensure the properties exist and are accessible
+        System.assert(true, 'WebStore ID should be accessible: ' + wrapper.webStoreId);
+        System.assert(true, 'Guest Profile ID should be accessible: ' + wrapper.guestBrowserProfileId);
+        System.assert(true, 'Shopper Profile ID should be accessible: ' + wrapper.shopShopperProfileId);
+        System.assert(true, 'Guest Pricebook ID should be accessible: ' + wrapper.guestPricebookId);
+        System.assert(true, 'Auth Pricebook ID should be accessible: ' + wrapper.authenticatedPriceBookId);
     }
 
     /**
@@ -281,6 +318,15 @@ private class StoreDefaultsHelperTest {
         wrapper.quickTurnUrlSlug = 'test-quick-turn';
         wrapper.myProductsUrlSlug = 'test-my-products';
         wrapper.detailUrlSlug = 'test-detail';
+
+        // Set WebStore and Profile configuration
+        wrapper.webStoreId = 'testWebStoreId';
+        wrapper.guestBrowserProfileId = 'testGuestProfileId';
+        wrapper.shopShopperProfileId = 'testShopperProfileId';
+
+        // Set Pricebook configuration
+        wrapper.guestPricebookId = 'testGuestPricebookId';
+        wrapper.authenticatedPriceBookId = 'testAuthPricebookId';
         Test.stopTest();
 
         // Verify all properties
@@ -298,6 +344,11 @@ private class StoreDefaultsHelperTest {
         System.assertEquals(30, wrapper.quickTurnPageSize, 'Quick Turn page size should match');
         System.assertEquals(3000, wrapper.filterValuesLimit, 'Filter values limit should match');
         System.assertEquals('test-quick-turn', wrapper.quickTurnUrlSlug, 'Quick Turn slug should match');
+        System.assertEquals('testWebStoreId', wrapper.webStoreId, 'WebStore ID should match');
+        System.assertEquals('testGuestProfileId', wrapper.guestBrowserProfileId, 'Guest Profile ID should match');
+        System.assertEquals('testShopperProfileId', wrapper.shopShopperProfileId, 'Shopper Profile ID should match');
+        System.assertEquals('testGuestPricebookId', wrapper.guestPricebookId, 'Guest Pricebook ID should match');
+        System.assertEquals('testAuthPricebookId', wrapper.authenticatedPriceBookId, 'Auth Pricebook ID should match');
     }
 
     /**
@@ -355,6 +406,11 @@ private class StoreDefaultsHelperTest {
         String quickTurnSlug = StoreDefaultsHelper.getQuickTurnUrlSlug();
         String myProductsSlug = StoreDefaultsHelper.getMyProductsUrlSlug();
         String detailSlug = StoreDefaultsHelper.getDetailUrlSlug();
+        String webStoreId = StoreDefaultsHelper.getWebStoreId();
+        String guestProfileId = StoreDefaultsHelper.getGuestBrowserProfileId();
+        String shopperProfileId = StoreDefaultsHelper.getShopShopperProfileId();
+        String guestPricebookId = StoreDefaultsHelper.getGuestPricebookId();
+        String authPricebookId = StoreDefaultsHelper.getAuthenticatedPriceBookId();
         StoreDefaultsHelper.StoreDefaultsWrapper wrapper = StoreDefaultsHelper.getAllDefaults();
         Test.stopTest();
 

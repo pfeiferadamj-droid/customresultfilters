@@ -152,6 +152,30 @@ public with sharing class StoreDefaultsHelper {
         return getDefaults().Detail_URL_Slug__c != null ? getDefaults().Detail_URL_Slug__c : 'detail';
     }
 
+    // ===== WEBSTORE & PROFILE CONFIGURATION =====
+
+    public static String getWebStoreId() {
+        return getDefaults().WebStoreId__c;
+    }
+
+    public static String getGuestBrowserProfileId() {
+        return getDefaults().Guest_Browser_Profile_Id__c;
+    }
+
+    public static String getShopShopperProfileId() {
+        return getDefaults().Shop_Shopper_Profile_ID__c;
+    }
+
+    // ===== PRICEBOOK CONFIGURATION =====
+
+    public static String getGuestPricebookId() {
+        return getDefaults().GuestPricebookID__c;
+    }
+
+    public static String getAuthenticatedPriceBookId() {
+        return getDefaults().Authenticated_Price_Book_ID__c;
+    }
+
     // ===== WRAPPER FOR JAVASCRIPT ACCESS =====
 
     /**
@@ -203,6 +227,15 @@ public with sharing class StoreDefaultsHelper {
         wrapper.myProductsUrlSlug = getMyProductsUrlSlug();
         wrapper.detailUrlSlug = getDetailUrlSlug();
 
+        // WebStore & Profile Configuration
+        wrapper.webStoreId = getWebStoreId();
+        wrapper.guestBrowserProfileId = getGuestBrowserProfileId();
+        wrapper.shopShopperProfileId = getShopShopperProfileId();
+
+        // Pricebook Configuration
+        wrapper.guestPricebookId = getGuestPricebookId();
+        wrapper.authenticatedPriceBookId = getAuthenticatedPriceBookId();
+
         return wrapper;
     }
 
@@ -237,6 +270,11 @@ public with sharing class StoreDefaultsHelper {
         @AuraEnabled public String quickTurnUrlSlug { get; set; }
         @AuraEnabled public String myProductsUrlSlug { get; set; }
         @AuraEnabled public String detailUrlSlug { get; set; }
+        @AuraEnabled public String webStoreId { get; set; }
+        @AuraEnabled public String guestBrowserProfileId { get; set; }
+        @AuraEnabled public String shopShopperProfileId { get; set; }
+        @AuraEnabled public String guestPricebookId { get; set; }
+        @AuraEnabled public String authenticatedPriceBookId { get; set; }
     }
 
     /**

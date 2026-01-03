@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>60.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Automated Product Grid</masterLabel>
+    <description>Automatically configures product grid based on user profile and category</description>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property name="categoryId" type="String" label="Category ID" description="The ID of the category to display products from" required="true" />
+            <property name="addToCartButtonText" type="String" label="Add to Cart Button Text" default="Add to Cart" description="Text for the add to cart button" />
+            <property name="viewOptionsButtonText" type="String" label="View Options Button Text" default="View Options" description="Text for the view options button" />
+            <property name="quantitySelectorLabelText" type="String" label="Quantity Selector Label" default="Quantity" description="Label for the quantity selector" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
