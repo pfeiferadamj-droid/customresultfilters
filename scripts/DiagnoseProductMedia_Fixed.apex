@@ -43,9 +43,8 @@ System.debug('\n--- MANAGED CONTENT ANALYSIS ---');
 
 try {
     List<ManagedContent> contents = [
-        SELECT Id, Title, ContentKey
+        SELECT Id, Name, ContentKey
         FROM ManagedContent
-        WHERE Type = 'media'
         LIMIT 100
     ];
 
@@ -56,7 +55,7 @@ try {
     Integer sampleCount = 0;
     for (ManagedContent mc : contents) {
         if (sampleCount < 10) {
-            System.debug('  ID: ' + mc.Id + ' | Title: "' + mc.Title + '" | ContentKey: ' + mc.ContentKey);
+            System.debug('  ID: ' + mc.Id + ' | Name: "' + mc.Name + '" | ContentKey: ' + mc.ContentKey);
             sampleCount++;
         }
     }
