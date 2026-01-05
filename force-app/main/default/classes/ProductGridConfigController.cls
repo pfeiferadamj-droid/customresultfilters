@@ -34,9 +34,15 @@ public with sharing class ProductGridConfigController {
         String authenticatedPricebookId = StoreDefaultsHelper.getAuthenticatedPriceBookId();
         String myProductsCategoryName = StoreDefaultsHelper.getMyProductsCategoryName();
         String quickTurnCategoryName = StoreDefaultsHelper.getQuickTurnCategoryName();
+        String myProductsUrlSlug = StoreDefaultsHelper.getMyProductsUrlSlug();
+        String quickTurnUrlSlug = StoreDefaultsHelper.getQuickTurnUrlSlug();
+
+        // Resolve URL slug to actual category ID if needed
+        String resolvedCategoryId = resolveCategoryId(categoryId, quickTurnCategoryId, myProductsCategoryId,
+                                                        quickTurnUrlSlug, myProductsUrlSlug);
 
         // Determine category type with fallback name matching
-        String categoryType = determineCategoryType(categoryId, quickTurnCategoryId, myProductsCategoryId,
+        String categoryType = determineCategoryType(resolvedCategoryId, quickTurnCategoryId, myProductsCategoryId,
                                                      quickTurnCategoryName, myProductsCategoryName);
 
         // Set common defaults
@@ -63,7 +69,7 @@ public with sharing class ProductGridConfigController {
         }
         // Scenario 3: Shop Shopper in My Products Category
         else if (currentProfileId == shopperProfileId && categoryType == 'MyProducts') {
-            config.categoryId = categoryId;
+            config.categoryId = resolvedCategoryId;  // Use resolved ID for queries
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = authenticatedPricebookId;
             config.specialPricebookIds = null;
@@ -71,7 +77,7 @@ public with sharing class ProductGridConfigController {
         }
         // Scenario 4: Guest User in My Products Category
         else if (currentProfileId == guestProfileId && categoryType == 'MyProducts') {
-            config.categoryId = categoryId;
+            config.categoryId = resolvedCategoryId;  // Use resolved ID for queries
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = guestPricebookId;
             config.specialPricebookIds = null;  // No 'c' suffix for My Products
@@ -93,8 +99,33 @@ public with sharing class ProductGridConfigController {
     }
 
     /**
+     * Resolve URL slug to actual ProductCategory ID
+     * Salesforce URLs may contain URL slugs that differ from actual category IDs
+     * @param categoryId The category identifier from URL (could be slug or actual ID)
+     * @param quickTurnCategoryId Actual Quick Turn category ID from metadata
+     * @param myProductsCategoryId Actual My Products category ID from metadata
+     * @param quickTurnUrlSlug URL slug for Quick Turn category
+     * @param myProductsUrlSlug URL slug for My Products category
+     * @return String The actual ProductCategory ID to use for queries
+     */
+    private static String resolveCategoryId(String categoryId, String quickTurnCategoryId,
+                                             String myProductsCategoryId, String quickTurnUrlSlug,
+                                             String myProductsUrlSlug) {
+        // Check if categoryId matches a URL slug - if so, return actual category ID
+        if (categoryId == quickTurnUrlSlug) {
+            return quickTurnCategoryId;
+        }
+        if (categoryId == myProductsUrlSlug) {
+            return myProductsCategoryId;
+        }
+
+        // Not a known URL slug, return as-is (assume it's already an actual category ID)
+        return categoryId;
+    }
+
+    /**
      * Determine category type by comparing IDs or querying category name
-     * @param categoryId The category ID from URL
+     * @param categoryId The category ID from URL (should already be resolved)
      * @param quickTurnCategoryId Quick Turn category ID from metadata
      * @param myProductsCategoryId My Products category ID from metadata
      * @param quickTurnCategoryName Quick Turn category name from metadata
