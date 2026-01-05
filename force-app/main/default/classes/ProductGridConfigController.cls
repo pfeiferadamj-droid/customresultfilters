@@ -57,7 +57,7 @@ public with sharing class ProductGridConfigController {
             config.restrictToParents = false;
         }
         // Scenario 3: Shop Shopper in My Products Category
-        else if (currentProfileId == shopperProfileId && categoryId == '0ZGbb000000FFOXGA4') {
+        else if (currentProfileId == shopperProfileId && categoryId == myProductsCategoryId) {
             config.categoryId = myProductsCategoryId;
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = null;
