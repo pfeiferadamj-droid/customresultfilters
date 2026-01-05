@@ -33,6 +33,11 @@ public with sharing class ProductGridConfigController {
         String guestPricebookId = StoreDefaultsHelper.getGuestPricebookId();
         String authenticatedPricebookId = StoreDefaultsHelper.getAuthenticatedPriceBookId();
         String myProductsCategoryName = StoreDefaultsHelper.getMyProductsCategoryName();
+        String quickTurnCategoryName = StoreDefaultsHelper.getQuickTurnCategoryName();
+
+        // Determine category type with fallback name matching
+        String categoryType = determineCategoryType(categoryId, quickTurnCategoryId, myProductsCategoryId,
+                                                     quickTurnCategoryName, myProductsCategoryName);
 
         // Set common defaults
         config.webstoreId = webStoreId;
@@ -45,27 +50,97 @@ public with sharing class ProductGridConfigController {
         config.showListingPrice = true;
 
         // Scenario 1: Guest User in Quick Turn Category
-        if (currentProfileId == guestProfileId && categoryId == quickTurnCategoryId) {
+        if (currentProfileId == guestProfileId && categoryType == 'QuickTurn') {
             config.currentPricebookId = guestPricebookId;
             config.specialPricebookIds = guestPricebookId;
             config.restrictToParents = false;
         }
         // Scenario 2: Shop Shopper in Quick Turn Category
-        else if (currentProfileId == shopperProfileId && categoryId == quickTurnCategoryId) {
+        else if (currentProfileId == shopperProfileId && categoryType == 'QuickTurn') {
             config.currentPricebookId = authenticatedPricebookId;
             config.specialPricebookIds = null;
             config.restrictToParents = false;
         }
         // Scenario 3: Shop Shopper in My Products Category
-        else if (currentProfileId == shopperProfileId && categoryId == '0ZGPU0000001iob4AA') {
-            config.categoryId = myProductsCategoryId;
+        else if (currentProfileId == shopperProfileId && categoryType == 'MyProducts') {
+            config.categoryId = categoryId;
             config.categoryName = myProductsCategoryName;
-            config.currentPricebookId = null;
+            config.currentPricebookId = authenticatedPricebookId;
             config.specialPricebookIds = null;
             config.restrictToParents = true;
         }
+        // Scenario 4: Guest User in My Products Category
+        else if (currentProfileId == guestProfileId && categoryType == 'MyProducts') {
+            config.categoryId = categoryId;
+            config.categoryName = myProductsCategoryName;
+            config.currentPricebookId = guestPricebookId;
+            config.specialPricebookIds = null;  // No 'c' suffix for My Products
+            config.restrictToParents = true;
+        }
+        // Default: Other categories use profile-appropriate pricebook
+        else {
+            if (currentProfileId == guestProfileId) {
+                config.currentPricebookId = guestPricebookId;
+                config.specialPricebookIds = null;
+            } else {
+                config.currentPricebookId = authenticatedPricebookId;
+                config.specialPricebookIds = null;
+            }
+            config.restrictToParents = false;
+        }
 
         return config;
+    }
+
+    /**
+     * Determine category type by comparing IDs or querying category name
+     * @param categoryId The category ID from URL
+     * @param quickTurnCategoryId Quick Turn category ID from metadata
+     * @param myProductsCategoryId My Products category ID from metadata
+     * @param quickTurnCategoryName Quick Turn category name from metadata
+     * @param myProductsCategoryName My Products category name from metadata
+     * @return String 'QuickTurn', 'MyProducts', or 'Unknown'
+     */
+    private static String determineCategoryType(String categoryId, String quickTurnCategoryId,
+                                                  String myProductsCategoryId, String quickTurnCategoryName,
+                                                  String myProductsCategoryName) {
+        // Direct ID match (fastest)
+        if (categoryId == quickTurnCategoryId) {
+            return 'QuickTurn';
+        }
+        if (categoryId == myProductsCategoryId) {
+            return 'MyProducts';
+        }
+
+        // Fallback: Query category name to determine type
+        try {
+            List<ProductCategory> categories = [
+                SELECT Name
+                FROM ProductCategory
+                WHERE Id = :categoryId
+                LIMIT 1
+            ];
+
+            if (!categories.isEmpty()) {
+                String categoryName = categories[0].Name;
+
+                // Match by name (case-insensitive)
+                if (categoryName.equalsIgnoreCase(myProductsCategoryName) ||
+                    categoryName.containsIgnoreCase('My Products') ||
+                    categoryName.containsIgnoreCase('detail')) {
+                    return 'MyProducts';
+                }
+                else if (categoryName.equalsIgnoreCase(quickTurnCategoryName) ||
+                         categoryName.containsIgnoreCase('Quick Turn') ||
+                         categoryName.containsIgnoreCase('Essentials')) {
+                    return 'QuickTurn';
+                }
+            }
+        } catch (Exception e) {
+            System.debug('ProductGridConfigController - Error querying category: ' + e.getMessage());
+        }
+
+        return 'Unknown';
     }
 
     /**
