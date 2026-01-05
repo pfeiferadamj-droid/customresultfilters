@@ -65,8 +65,6 @@ public with sharing class ProductGridConfigController {
             config.restrictToParents = true;
         }
 
-        // config.categoryId = categoryId;
-
         return config;
     }
 
@@ -89,4 +87,5 @@ public with sharing class ProductGridConfigController {
         @AuraEnabled public String specialPricebookIds { get; set; }
     }
 }
+
 
