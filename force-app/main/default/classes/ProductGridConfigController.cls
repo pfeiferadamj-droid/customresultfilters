@@ -57,31 +57,12 @@ public with sharing class ProductGridConfigController {
             config.restrictToParents = false;
         }
         // Scenario 3: Shop Shopper in My Products Category
-        else if (currentProfileId == shopperProfileId && categoryId == myProductsCategoryId) {
+        else if (currentProfileId == shopperProfileId && categoryId == '0ZGPU0000001iob4AA') {
             config.categoryId = myProductsCategoryId;
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = null;
             config.specialPricebookIds = null;
             config.restrictToParents = true;
-        }
-        // Scenario 4: Guest User in My Products Category
-        else if (currentProfileId == guestProfileId && categoryId == myProductsCategoryId) {
-            config.categoryId = myProductsCategoryId;
-            config.categoryName = myProductsCategoryName;
-            config.currentPricebookId = guestPricebookId;
-            config.specialPricebookIds = null;  // No 'c' suffix for My Products
-            config.restrictToParents = true;
-        }
-        // Default: Other categories use profile-appropriate pricebook
-        else {
-            if (currentProfileId == guestProfileId) {
-                config.currentPricebookId = guestPricebookId;
-                config.specialPricebookIds = null;
-            } else {
-                config.currentPricebookId = authenticatedPricebookId;
-                config.specialPricebookIds = null;
-            }
-            config.restrictToParents = false;
         }
 
         // config.categoryId = categoryId;
@@ -108,3 +89,4 @@ public with sharing class ProductGridConfigController {
         @AuraEnabled public String specialPricebookIds { get; set; }
     }
 }
+
