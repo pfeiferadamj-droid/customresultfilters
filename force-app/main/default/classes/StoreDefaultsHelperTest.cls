@@ -146,12 +146,17 @@ private class StoreDefaultsHelperTest {
         String detailSlug = StoreDefaultsHelper.getDetailUrlSlug();
         Test.stopTest();
 
-        // Should return metadata or fallback slug values
+        // Should return metadata or fallback values
+        // Note: URL slugs now store URL category identifiers (Salesforce IDs from URLs)
+        // which may differ from actual ProductCategory IDs
         System.assert(
-            quickTurnSlug == 'quick-turn' || quickTurnSlug == 'essentials-by-caps-direct',
+            quickTurnSlug == 'quick-turn' || quickTurnSlug == 'essentials-by-caps-direct' || quickTurnSlug == '0ZGPU0000001iqD4AQ',
             'Quick Turn slug should return metadata or fallback'
         );
-        System.assertEquals('my-products', myProductsSlug, 'My Products slug should match');
+        System.assert(
+            myProductsSlug == 'my-products' || myProductsSlug == '0ZGbb000000FFOXGA4',
+            'My Products slug should return metadata (URL identifier) or fallback'
+        );
         System.assertEquals('detail', detailSlug, 'Detail slug should match');
     }
 
@@ -235,11 +240,16 @@ private class StoreDefaultsHelperTest {
         System.assertEquals(2000, wrapper.filterValuesLimit, 'Filter values limit should match');
 
         // Verify URL slugs - accept metadata or fallback values
+        // Note: URL slugs now store URL category identifiers (Salesforce IDs from URLs)
+        // which may differ from actual ProductCategory IDs
         System.assert(
-            wrapper.quickTurnUrlSlug == 'quick-turn' || wrapper.quickTurnUrlSlug == 'essentials-by-caps-direct',
+            wrapper.quickTurnUrlSlug == 'quick-turn' || wrapper.quickTurnUrlSlug == 'essentials-by-caps-direct' || wrapper.quickTurnUrlSlug == '0ZGPU0000001iqD4AQ',
             'Quick Turn slug should return metadata or fallback'
         );
-        System.assertEquals('my-products', wrapper.myProductsUrlSlug, 'My Products slug should match');
+        System.assert(
+            wrapper.myProductsUrlSlug == 'my-products' || wrapper.myProductsUrlSlug == '0ZGbb000000FFOXGA4',
+            'My Products slug should return metadata (URL identifier) or fallback'
+        );
         System.assertEquals('detail', wrapper.detailUrlSlug, 'Detail slug should match');
 
         // Verify new fields are present (can be null if metadata not configured)
