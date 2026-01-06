@@ -113,6 +113,10 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
         this._categoryId = value;
         if (value && value !== oldValue) {
             this.resolvedCategoryId = value;
+            // Reload filters for the new category from sessionStorage
+            if (this._isInitialized) {
+                this.loadFiltersFromSession();
+            }
             // Only fetch if component is already initialized (not during initial setup)
             if (this._isInitialized && this.webstoreId && this.resolvedCategoryId) {
                 this.fetchProducts();
@@ -1549,6 +1553,10 @@ handleShowProduct(event) {
             if (savedFilters) {
                 this.currentFilters = JSON.parse(savedFilters);
                 console.log('customCategoryProductGrid: Loaded filters from session:', storageKey, this.currentFilters);
+            } else {
+                // No saved filters for this category - clear all filters
+                this.currentFilters = {};
+                console.log('customCategoryProductGrid: No saved filters for category, cleared filters');
             }
         } catch (e) {
             console.error('customCategoryProductGrid: Error loading filters from session:', e);
