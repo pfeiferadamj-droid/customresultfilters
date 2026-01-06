@@ -120,13 +120,25 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             // Defer fetchProducts to allow other @api properties (restrictToParents, categoryName) to update
             // This prevents fetching with stale property values when multiple properties change
             if (this._isInitialized && this.webstoreId && this.resolvedCategoryId) {
-                // Use Promise.resolve() to defer until after all property setters complete
-                Promise.resolve().then(() => {
+                // Cancel any pending fetch
+                if (this._fetchTimeout) {
+                    clearTimeout(this._fetchTimeout);
+                }
+                // Use setTimeout(0) to push to end of task queue, ensuring all @api setters complete first
+                this._fetchTimeout = setTimeout(() => {
+                    this._fetchTimeout = null;
+                    console.log('Deferred fetch executing with:', {
+                        categoryName: this.categoryName,
+                        restrictToParents: this.restrictToParents,
+                        resolvedCategoryId: this.resolvedCategoryId
+                    });
                     this.fetchProducts();
-                });
+                }, 0);
             }
         }
     }
+
+    _fetchTimeout = null;
 
     _categoryId;
     _isInitialized = false;
