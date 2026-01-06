@@ -117,9 +117,13 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
             if (this._isInitialized) {
                 this.loadFiltersFromSession();
             }
-            // Only fetch if component is already initialized (not during initial setup)
+            // Defer fetchProducts to allow other @api properties (restrictToParents, categoryName) to update
+            // This prevents fetching with stale property values when multiple properties change
             if (this._isInitialized && this.webstoreId && this.resolvedCategoryId) {
-                this.fetchProducts();
+                // Use Promise.resolve() to defer until after all property setters complete
+                Promise.resolve().then(() => {
+                    this.fetchProducts();
+                });
             }
         }
     }
