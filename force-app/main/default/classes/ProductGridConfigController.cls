@@ -47,6 +47,7 @@ public with sharing class ProductGridConfigController {
 
         // Set common defaults
         config.webstoreId = webStoreId;
+        config.categoryId = resolvedCategoryId;  // Always set resolved ID for downstream components
         config.layout = 'grid';
         config.productsPerPage = 24;
         config.showProductImage = true;
@@ -69,7 +70,6 @@ public with sharing class ProductGridConfigController {
         }
         // Scenario 3: Shop Shopper in My Products Category
         else if (currentProfileId == shopperProfileId && categoryType == 'MyProducts') {
-            config.categoryId = resolvedCategoryId;  // Use resolved ID for queries
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = authenticatedPricebookId;
             config.specialPricebookIds = null;
@@ -77,7 +77,6 @@ public with sharing class ProductGridConfigController {
         }
         // Scenario 4: Guest User in My Products Category
         else if (currentProfileId == guestProfileId && categoryType == 'MyProducts') {
-            config.categoryId = resolvedCategoryId;  // Use resolved ID for queries
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = guestPricebookId;
             config.specialPricebookIds = null;  // No 'c' suffix for My Products

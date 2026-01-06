@@ -28,8 +28,8 @@ private class ProductGridConfigControllerTest {
 
         // Verify configuration is returned
         System.assertNotEquals(null, config, 'Configuration should not be null');
-        // Note: categoryId is only set in Scenario 3, so it will be null for this test
-        // unless running as shopper profile in My Products category
+        // categoryId should always be set to the resolved ID (or original if no resolution needed)
+        System.assertEquals(testCategoryId, config.categoryId, 'Category ID should be set to resolved ID');
 
         // Verify common defaults
         System.assertEquals('grid', config.layout, 'Layout should be grid');
@@ -54,26 +54,27 @@ private class ProductGridConfigControllerTest {
 
         // Verify configuration is returned
         System.assertNotEquals(null, config, 'Configuration should not be null');
-        // Note: categoryId is only set in Scenario 3 (My Products)
-        // For Quick Turn scenarios, categoryId will be null
+        // categoryId should always be set to the resolved ID
+        System.assertEquals(quickTurnCategoryId, config.categoryId, 'Category ID should be set');
         System.assertNotEquals(null, config.webstoreId, 'Webstore ID should be set');
     }
 
     @isTest
     static void testGetProductGridConfigMyProducts() {
-        // This test uses the hardcoded My Products category ID to trigger Scenario 3
-        // Note: Scenario 3 only triggers if user profile matches shopperProfileId
-        String myProductsCategoryId = '0ZGbb000000FFOXGA4';
+        // This test uses the My Products URL slug to verify resolution to actual category ID
+        // The URL slug should be resolved to the actual metadata category ID
+        String myProductsUrlSlug = StoreDefaultsHelper.getMyProductsUrlSlug();
+        String myProductsCategoryId = StoreDefaultsHelper.getMyProductsCategoryId();
 
         Test.startTest();
         ProductGridConfigController.ProductGridConfig config =
-            ProductGridConfigController.getProductGridConfig(myProductsCategoryId);
+            ProductGridConfigController.getProductGridConfig(myProductsUrlSlug);
         Test.stopTest();
 
         // Verify configuration is returned
         System.assertNotEquals(null, config, 'Configuration should not be null');
-        // categoryId will only be set if test runs as shopper profile
-        // In test context with system admin, Scenario 3 won't match, so categoryId will be null
+        // categoryId should be set to the resolved actual category ID, not the URL slug
+        System.assertEquals(myProductsCategoryId, config.categoryId, 'Category ID should be resolved to actual ID');
 
         // Verify common defaults are set
         System.assertEquals('grid', config.layout, 'Layout should be grid');
@@ -93,9 +94,39 @@ private class ProductGridConfigControllerTest {
 
         // Should still return config with defaults
         System.assertNotEquals(null, config, 'Configuration should not be null');
-        // categoryId will be null because this doesn't match any scenario
+        // categoryId should be set even for unmatched categories (passed through as-is)
+        System.assertEquals(unmatchedCategoryId, config.categoryId, 'Category ID should be set to input value');
         System.assertEquals('grid', config.layout, 'Layout should default to grid');
         System.assertEquals(24, config.productsPerPage, 'Products per page should default to 24');
+    }
+
+    @isTest
+    static void testUrlSlugResolution() {
+        // Test that URL slugs are correctly resolved to actual category IDs
+        String quickTurnUrlSlug = StoreDefaultsHelper.getQuickTurnUrlSlug();
+        String quickTurnCategoryId = StoreDefaultsHelper.getQuickTurnCategoryId();
+        String myProductsUrlSlug = StoreDefaultsHelper.getMyProductsUrlSlug();
+        String myProductsCategoryId = StoreDefaultsHelper.getMyProductsCategoryId();
+
+        Test.startTest();
+        // Test Quick Turn slug resolution
+        ProductGridConfigController.ProductGridConfig configQuickTurn =
+            ProductGridConfigController.getProductGridConfig(quickTurnUrlSlug);
+
+        // Test My Products slug resolution
+        ProductGridConfigController.ProductGridConfig configMyProducts =
+            ProductGridConfigController.getProductGridConfig(myProductsUrlSlug);
+        Test.stopTest();
+
+        // Verify Quick Turn slug was resolved to actual ID
+        System.assertNotEquals(null, configQuickTurn, 'Quick Turn config should not be null');
+        System.assertEquals(quickTurnCategoryId, configQuickTurn.categoryId,
+            'Quick Turn URL slug should resolve to actual category ID');
+
+        // Verify My Products slug was resolved to actual ID
+        System.assertNotEquals(null, configMyProducts, 'My Products config should not be null');
+        System.assertEquals(myProductsCategoryId, configMyProducts.categoryId,
+            'My Products URL slug should resolve to actual category ID');
     }
 
     @isTest
