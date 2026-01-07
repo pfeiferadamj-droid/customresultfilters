@@ -1155,6 +1155,7 @@ handleShowProduct(event) {
     handlePreviousPage() {
         if (this.currentPage > 1) {
             this.currentPage--;
+            this.savePaginationToSession();
             this.fetchProducts();
             this.scrollToTop();
         }
@@ -1166,6 +1167,7 @@ handleShowProduct(event) {
     handleNextPage() {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;
+            this.savePaginationToSession();
             this.fetchProducts();
             this.scrollToTop();
         }
@@ -1177,6 +1179,7 @@ handleShowProduct(event) {
     handleFirstPage() {
         if (this.currentPage !== 1) {
             this.currentPage = 1;
+            this.savePaginationToSession();
             this.fetchProducts();
             this.scrollToTop();
         }
@@ -1188,6 +1191,7 @@ handleShowProduct(event) {
     handleLastPage() {
         if (this.currentPage !== this.totalPages) {
             this.currentPage = this.totalPages;
+            this.savePaginationToSession();
             this.fetchProducts();
             this.scrollToTop();
         }
@@ -1225,15 +1229,15 @@ handleShowProduct(event) {
 
     /**
      * Generate page numbers with ellipsis for pagination
-     * Shows first 3 pages, ellipsis, and last page
+     * Always shows the current page with proper highlighting
      */
     get pageNumbers() {
         const pages = [];
         const current = this.currentPage;
         const total = this.totalPages;
 
-        if (total <= 4) {
-            // Show all pages if 4 or fewer
+        if (total <= 7) {
+            // Show all pages if 7 or fewer
             for (let i = 1; i <= total; i++) {
                 const isCurrent = i === current;
                 pages.push({
@@ -1246,8 +1250,33 @@ handleShowProduct(event) {
                 });
             }
         } else {
-            // Show first 3 pages
-            for (let i = 1; i <= 3; i++) {
+            // Always show first page
+            pages.push({
+                number: 1,
+                label: '1',
+                isEllipsis: false,
+                isCurrent: current === 1,
+                className: current === 1 ? 'pagination-number active' : 'pagination-number',
+                key: 'page-1'
+            });
+
+            // Add left ellipsis if current page is far from start
+            if (current > 3) {
+                pages.push({
+                    number: null,
+                    label: '...',
+                    isEllipsis: true,
+                    isCurrent: false,
+                    className: 'pagination-ellipsis',
+                    key: 'ellipsis-left'
+                });
+            }
+
+            // Show pages around current page
+            const startPage = Math.max(2, current - 1);
+            const endPage = Math.min(total - 1, current + 1);
+
+            for (let i = startPage; i <= endPage; i++) {
                 const isCurrent = i === current;
                 pages.push({
                     number: i,
@@ -1259,24 +1288,25 @@ handleShowProduct(event) {
                 });
             }
 
-            // Add ellipsis
-            pages.push({
-                number: null,
-                label: '...',
-                isEllipsis: true,
-                isCurrent: false,
-                className: 'pagination-ellipsis',
-                key: 'ellipsis'
-            });
+            // Add right ellipsis if current page is far from end
+            if (current < total - 2) {
+                pages.push({
+                    number: null,
+                    label: '...',
+                    isEllipsis: true,
+                    isCurrent: false,
+                    className: 'pagination-ellipsis',
+                    key: 'ellipsis-right'
+                });
+            }
 
-            // Add last page
-            const lastIsCurrent = total === current;
+            // Always show last page
             pages.push({
                 number: total,
                 label: String(total),
                 isEllipsis: false,
-                isCurrent: lastIsCurrent,
-                className: lastIsCurrent ? 'pagination-number active' : 'pagination-number',
+                isCurrent: current === total,
+                className: current === total ? 'pagination-number active' : 'pagination-number',
                 key: `page-${total}`
             });
         }
@@ -1291,6 +1321,7 @@ handleShowProduct(event) {
         const pageNumber = parseInt(event.target.dataset.page, 10);
         if (pageNumber && pageNumber !== this.currentPage) {
             this.currentPage = pageNumber;
+            this.savePaginationToSession();
             this.fetchProducts();
             this.scrollToTop();
         }
@@ -1577,6 +1608,49 @@ handleShowProduct(event) {
         } catch (e) {
             console.error('customCategoryProductGrid: Error loading filters from session:', e);
             this.currentFilters = {};
+        }
+
+        // Also load pagination state
+        this.loadPaginationFromSession();
+    }
+
+    /**
+     * Save current page to sessionStorage to persist across navigation
+     */
+    savePaginationToSession() {
+        if (!this.resolvedCategoryId) return;
+
+        const storageKey = `paginationState_${this.resolvedCategoryId}`;
+        try {
+            const paginationState = {
+                currentPage: this.currentPage
+            };
+            sessionStorage.setItem(storageKey, JSON.stringify(paginationState));
+            console.log('customCategoryProductGrid: Saved pagination to session:', storageKey, paginationState);
+        } catch (e) {
+            console.error('customCategoryProductGrid: Error saving pagination to session:', e);
+        }
+    }
+
+    /**
+     * Load pagination state from sessionStorage
+     */
+    loadPaginationFromSession() {
+        if (!this.resolvedCategoryId) return;
+
+        const storageKey = `paginationState_${this.resolvedCategoryId}`;
+        try {
+            const savedPagination = sessionStorage.getItem(storageKey);
+            if (savedPagination) {
+                const paginationState = JSON.parse(savedPagination);
+                this.currentPage = paginationState.currentPage || 1;
+                console.log('customCategoryProductGrid: Loaded pagination from session:', storageKey, paginationState);
+            } else {
+                console.log('customCategoryProductGrid: No saved pagination for category, using default page 1');
+            }
+        } catch (e) {
+            console.error('customCategoryProductGrid: Error loading pagination from session:', e);
+            this.currentPage = 1;
         }
     }
 
