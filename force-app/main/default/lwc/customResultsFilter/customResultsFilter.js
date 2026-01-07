@@ -169,18 +169,20 @@ export default class CustomResultsFilter extends LightningElement {
         }
 
         console.log('customResultsFilter: Loading filter data for category:', this.currentCategory);
+        console.log('customResultsFilter: Category ID:', this.categoryId);
         this.isLoading = true;
         getFilterData({
             category: this.currentCategory,
             includeAccountEndUsers: this.showAllAccountEndUsers
         })
             .then(result => {
-                console.log('customResultsFilter: Received filter data:', result);
+                console.log('customResultsFilter: Received filter data from Apex:', result);
 
-                // Restore checked state from sessionStorage
-                this.restoreFilterCheckedState(result);
+                // Restore checked state from sessionStorage and get updated data
+                const restoredData = this.restoreFilterCheckedState(result);
 
-                this.filterData = result;
+                console.log('customResultsFilter: Setting filterData with restored checked state');
+                this.filterData = restoredData;
                 this.error = undefined;
                 this.isLoading = false;
             })
@@ -195,10 +197,17 @@ export default class CustomResultsFilter extends LightningElement {
     /**
      * Restore filter checked state from sessionStorage
      * Updates the filter values' checked property based on saved state
+     * Returns a new object to ensure LWC reactivity
      */
     restoreFilterCheckedState(filterData) {
-        if (!filterData || !this.categoryId) {
-            return;
+        if (!filterData) {
+            console.log('customResultsFilter: No filter data to restore');
+            return filterData;
+        }
+
+        if (!this.categoryId) {
+            console.log('customResultsFilter: No categoryId available, skipping restore. categoryId:', this.categoryId);
+            return filterData;
         }
 
         // Get saved filters from sessionStorage
@@ -206,26 +215,34 @@ export default class CustomResultsFilter extends LightningElement {
         try {
             const savedFilters = sessionStorage.getItem(storageKey);
             if (!savedFilters) {
-                console.log('customResultsFilter: No saved filters found for category');
-                return;
+                console.log('customResultsFilter: No saved filters found for category', this.categoryId);
+                return filterData;
             }
 
             const currentFilters = JSON.parse(savedFilters);
             console.log('customResultsFilter: Restoring filter checked state from session:', currentFilters);
+            console.log('customResultsFilter: Storage key:', storageKey);
+
+            // Create a deep copy of filterData to ensure reactivity
+            const updatedFilterData = JSON.parse(JSON.stringify(filterData));
 
             // Get the appropriate filter list based on category
             let filterList = null;
-            if (this.isQuickTurn && filterData.quickTurnFilters) {
-                filterList = filterData.quickTurnFilters;
-            } else if (this.isMyProducts && filterData.myProductsFilters) {
-                filterList = filterData.myProductsFilters;
+            if (this.isQuickTurn && updatedFilterData.quickTurnFilters) {
+                filterList = updatedFilterData.quickTurnFilters;
+                console.log('customResultsFilter: Restoring Quick Turn filters');
+            } else if (this.isMyProducts && updatedFilterData.myProductsFilters) {
+                filterList = updatedFilterData.myProductsFilters;
+                console.log('customResultsFilter: Restoring My Products filters');
             }
 
             if (!filterList) {
-                return;
+                console.log('customResultsFilter: No filter list found in data');
+                return filterData;
             }
 
             // Update checked state for each filter
+            let totalChecked = 0;
             filterList.forEach(filter => {
                 const savedFilterValues = currentFilters[filter.id];
                 if (savedFilterValues && Array.isArray(savedFilterValues)) {
@@ -233,14 +250,19 @@ export default class CustomResultsFilter extends LightningElement {
                     filter.values.forEach(value => {
                         value.checked = savedFilterValues.includes(value.value);
                         if (value.checked) {
-                            console.log(`customResultsFilter: Marked ${filter.label} - ${value.label} as checked`);
+                            totalChecked++;
+                            console.log(`customResultsFilter: ✓ Marked ${filter.label} - ${value.label} as checked`);
                         }
                     });
                 }
             });
 
+            console.log(`customResultsFilter: Restored ${totalChecked} checked filter values`);
+            return updatedFilterData;
+
         } catch (e) {
             console.error('customResultsFilter: Error restoring filter checked state:', e);
+            return filterData;
         }
     }
 
