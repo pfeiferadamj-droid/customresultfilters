@@ -1,0 +1,37 @@
+.filter-panel {
+    padding: 0.5rem;
+}
+
+.filter-group {
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.75rem;
+}
+
+.filter-group:last-child {
+    border-bottom: none;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #3e3e3c;
+    margin-bottom: 0.5rem;
+}
+
+.filter-values {
+    padding-left: 0.25rem;
+}
+
+.filter-value-item {
+    font-size: 0.875rem;
+}
+
+.filter-scope-toggle {
+    padding: 0.75rem;
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.filter-actions {
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e5e5;
+}

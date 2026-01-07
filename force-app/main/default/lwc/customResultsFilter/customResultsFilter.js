@@ -176,6 +176,10 @@ export default class CustomResultsFilter extends LightningElement {
         })
             .then(result => {
                 console.log('customResultsFilter: Received filter data:', result);
+
+                // Restore checked state from sessionStorage
+                this.restoreFilterCheckedState(result);
+
                 this.filterData = result;
                 this.error = undefined;
                 this.isLoading = false;
@@ -186,6 +190,58 @@ export default class CustomResultsFilter extends LightningElement {
                 this.isLoading = false;
                 console.error('customResultsFilter: Error loading filter data:', error);
             });
+    }
+
+    /**
+     * Restore filter checked state from sessionStorage
+     * Updates the filter values' checked property based on saved state
+     */
+    restoreFilterCheckedState(filterData) {
+        if (!filterData || !this.categoryId) {
+            return;
+        }
+
+        // Get saved filters from sessionStorage
+        const storageKey = `customFilters_${this.categoryId}`;
+        try {
+            const savedFilters = sessionStorage.getItem(storageKey);
+            if (!savedFilters) {
+                console.log('customResultsFilter: No saved filters found for category');
+                return;
+            }
+
+            const currentFilters = JSON.parse(savedFilters);
+            console.log('customResultsFilter: Restoring filter checked state from session:', currentFilters);
+
+            // Get the appropriate filter list based on category
+            let filterList = null;
+            if (this.isQuickTurn && filterData.quickTurnFilters) {
+                filterList = filterData.quickTurnFilters;
+            } else if (this.isMyProducts && filterData.myProductsFilters) {
+                filterList = filterData.myProductsFilters;
+            }
+
+            if (!filterList) {
+                return;
+            }
+
+            // Update checked state for each filter
+            filterList.forEach(filter => {
+                const savedFilterValues = currentFilters[filter.id];
+                if (savedFilterValues && Array.isArray(savedFilterValues)) {
+                    // Mark values as checked if they're in the saved filter state
+                    filter.values.forEach(value => {
+                        value.checked = savedFilterValues.includes(value.value);
+                        if (value.checked) {
+                            console.log(`customResultsFilter: Marked ${filter.label} - ${value.label} as checked`);
+                        }
+                    });
+                }
+            });
+
+        } catch (e) {
+            console.error('customResultsFilter: Error restoring filter checked state:', e);
+        }
     }
 
     /**

@@ -1,0 +1,87 @@
+<template>
+    <div class="filter-panel">
+        <!-- My Products Scope Toggle -->
+        <template if:true={isMyProducts}>
+            <div class="filter-scope-toggle slds-m-bottom_medium">
+                <lightning-input
+                    type="checkbox"
+                    label={scopeToggleLabel}
+                    checked={showAllAccountEndUsers}
+                    onchange={handleScopeToggle}>
+                </lightning-input>
+            </div>
+        </template>
+
+        <!-- Filter Groups -->
+        <template for:each={filters} for:item="filter">
+            <div key={filter.id} class="filter-group slds-m-bottom_medium">
+                <h3 class="filter-label slds-text-heading_small slds-m-bottom_x-small">{filter.label}</h3>
+
+                <!-- Checkbox Filters -->
+                <template if:true={filter.isCheckbox}>
+                    <div class="filter-values">
+                        <template for:each={filter.values} for:item="value">
+                            <div key={value.value} class="filter-value-item slds-m-bottom_xx-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={value.label}
+                                    checked={value.checked}
+                                    data-filter-id={filter.id}
+                                    data-value={value.value}
+                                    onchange={handleFilterChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Picklist Filters -->
+                <template if:true={filter.isPicklist}>
+                    <div class="filter-values">
+                        <template for:each={filter.values} for:item="value">
+                            <div key={value.value} class="filter-value-item slds-m-bottom_xx-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={value.label}
+                                    checked={value.checked}
+                                    data-filter-id={filter.id}
+                                    data-value={value.value}
+                                    onchange={handleFilterChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Lookup Filters (End User) -->
+                <template if:true={filter.isLookup}>
+                    <div class="filter-values">
+                        <template for:each={filter.values} for:item="value">
+                            <div key={value.value} class="filter-value-item slds-m-bottom_xx-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={value.label}
+                                    checked={value.checked}
+                                    data-filter-id={filter.id}
+                                    data-value={value.value}
+                                    onchange={handleFilterChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- Clear All Button -->
+        <template if:true={hasFilters}>
+            <div class="filter-actions slds-m-top_medium">
+                <lightning-button
+                    label="Clear All Filters"
+                    variant="neutral"
+                    onclick={handleClearAll}>
+                </lightning-button>
+            </div>
+        </template>
+    </div>
+</template>
