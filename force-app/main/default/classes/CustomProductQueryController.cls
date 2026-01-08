@@ -91,6 +91,13 @@ public without sharing class CustomProductQueryController {
             String shapeField = StoreDefaultsHelper.getShapeField();
             String rushReadyField = StoreDefaultsHelper.getRushReadyField();
 
+            // Check if endUserIds contains the special 'CURRENT_USER' value
+            // This indicates we should filter by the current user's Contact__c
+            Boolean useCurrentUser = endUserIds.contains('CURRENT_USER');
+            if (useCurrentUser) {
+                System.debug('  Special case: CURRENT_USER detected - filtering by current user Contact');
+            }
+
             // Build relationship field name for End User
             String endUserRelationshipName = endUserField.replace('__c', '__r.Name');
 
@@ -99,9 +106,30 @@ public without sharing class CustomProductQueryController {
                           endUserField + ', ' + endUserRelationshipName + ', ' + contactField + ', ' + accountField + ', ' +
                           shapeField + ', ' + rushReadyField + ', IsActive, ' + isParentField + ', ProductClass ' +
                           'FROM Product2 ' +
-                          'WHERE IsActive = true ' +
-                          'AND ' + endUserField + ' IN :endUserIds ' +
-                          'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
+                          'WHERE IsActive = true ';
+
+            // Add End User filter - either by specific End User IDs or by current user's Contact
+            if (useCurrentUser) {
+                // Get current user's contact ID
+                Id currentUserId = UserInfo.getUserId();
+                List<User> users = [SELECT ContactId FROM User WHERE Id = :currentUserId LIMIT 1];
+                if (users.isEmpty() || users[0].ContactId == null) {
+                    System.debug('  Current user has no Contact - returning empty result');
+                    result.products = new List<ProductWrapper>();
+                    result.total = 0;
+                    result.pageNumber = page;
+                    result.pageSize = size;
+                    return result;
+                }
+                Id contactId = users[0].ContactId;
+                System.debug('  Filtering by current user Contact: ' + contactId);
+                query += 'AND ' + contactField + ' = :contactId ';
+            } else {
+                // Filter by specific End User IDs provided
+                query += 'AND ' + endUserField + ' IN :endUserIds ';
+            }
+
+            query += 'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
 
             System.debug('  Filtering by: ' + isParentField + ' = ' + parentProductValue + ' OR ProductClass = ' + simpleProductClass);
 
@@ -153,9 +181,19 @@ public without sharing class CustomProductQueryController {
 
             // Get total count for pagination
             String countQuery = 'SELECT COUNT() FROM Product2 ' +
-                               'WHERE IsActive = true ' +
-                               'AND ' + endUserField + ' IN :endUserIds ' +
-                               'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
+                               'WHERE IsActive = true ';
+
+            // Add End User filter to count query - same logic as main query
+            if (useCurrentUser) {
+                Id currentUserId = UserInfo.getUserId();
+                List<User> users = [SELECT ContactId FROM User WHERE Id = :currentUserId LIMIT 1];
+                Id contactId = users[0].ContactId;
+                countQuery += 'AND ' + contactField + ' = :contactId ';
+            } else {
+                countQuery += 'AND ' + endUserField + ' IN :endUserIds ';
+            }
+
+            countQuery += 'AND (' + isParentField + ' = \'' + parentProductValue + '\' OR ProductClass = \'' + simpleProductClass + '\') ';
 
             // Add product code search to count query
             if (String.isNotBlank(productCode)) {

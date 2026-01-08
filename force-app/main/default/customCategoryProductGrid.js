@@ -540,14 +540,24 @@ export default class CustomCategoryProductGrid extends NavigationMixin(Lightning
                 (this.currentFilters['productCode'] && this.currentFilters['productCode'].length > 0) ||
                 (this.currentFilters['specialPrograms'] && this.currentFilters['specialPrograms'].length > 0);
 
+            // Check if we're in My Products category (uses Contact__c/Account__c filtering)
+            const isMyProducts = this.categoryName === 'My Products' ||
+                                 (this.storeDefaults && this.categoryName === this.storeDefaults.myProductsCategoryName);
+
             console.log('  Filter Analysis:');
             console.log('    hasEndUserFilter:', hasEndUserFilter);
             console.log('    hasQuickTurnFilters:', hasQuickTurnFilters);
+            console.log('    isMyProducts:', isMyProducts);
 
             if (hasEndUserFilter) {
                 // Use custom SOQL query for End User filtering (lookup fields don't work in Commerce Search)
                 console.log('➡️  Using custom SOQL query for End User filter:', endUserFilterValues);
                 await this.fetchProductsByEndUser(endUserFilterValues);
+            } else if (isMyProducts) {
+                // My Products category ALWAYS needs to filter by Contact__c/Account__c
+                // Even when no explicit End User filter is selected, use current user's contact
+                console.log('➡️  Using custom SOQL query for My Products (auto-filtering by current user)');
+                await this.fetchProductsByEndUser(['CURRENT_USER']); // Special value to indicate current user
             } else if (hasQuickTurnFilters) {
                 // Use custom SOQL query for Quick Turn text field filters
                 console.log('➡️  Using custom SOQL query for Quick Turn filters');
