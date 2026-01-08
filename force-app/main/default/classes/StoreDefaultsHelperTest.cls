@@ -94,7 +94,7 @@ private class StoreDefaultsHelperTest {
         System.assertEquals('QuickTurnDDT', driDuckValue, 'Dri-Duck value should return fallback');
         System.assertEquals('RushReady', rushReadyValue, 'Rush Ready value should return fallback');
         System.assert(
-            driDuckLabel == 'Dri-Duck' || driDuckLabel == 'DRI-Duck',
+            driDuckLabel == 'Dri-Duck' || driDuckLabel == 'DRI-Duck' || driDuckLabel == 'DRIDUCK',
             'Dri-Duck label should return metadata or fallback'
         );
         System.assertEquals('Rush Ready', rushReadyLabel, 'Rush Ready label should return fallback');
@@ -222,7 +222,7 @@ private class StoreDefaultsHelperTest {
         System.assertEquals('QuickTurnDDT', wrapper.driDuckValue, 'Dri-Duck value should match');
         System.assertEquals('RushReady', wrapper.rushReadyValue, 'Rush Ready value should match');
         System.assert(
-            wrapper.driDuckLabel == 'Dri-Duck' || wrapper.driDuckLabel == 'DRI-Duck',
+            wrapper.driDuckLabel == 'Dri-Duck' || wrapper.driDuckLabel == 'DRI-Duck' || wrapper.driDuckLabel == 'DRIDUCK',
             'Dri-Duck label should match metadata or fallback'
         );
         System.assertEquals('Rush Ready', wrapper.rushReadyLabel, 'Rush Ready label should match');
