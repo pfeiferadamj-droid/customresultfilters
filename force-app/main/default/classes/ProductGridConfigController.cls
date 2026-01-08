@@ -73,14 +73,14 @@ public with sharing class ProductGridConfigController {
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = authenticatedPricebookId;
             config.specialPricebookIds = null;
-            config.restrictToParents = true;
+            config.restrictToParents = false;  // Changed: Don't restrict to parents in My Products
         }
         // Scenario 4: Guest User in My Products Category
         else if (currentProfileId == guestProfileId && categoryType == 'MyProducts') {
             config.categoryName = myProductsCategoryName;
             config.currentPricebookId = guestPricebookId;
             config.specialPricebookIds = null;  // No 'c' suffix for My Products
-            config.restrictToParents = true;
+            config.restrictToParents = false;  // Changed: Don't restrict to parents in My Products
         }
         // Default: Other categories use profile-appropriate pricebook
         else {
